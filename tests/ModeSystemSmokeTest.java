@@ -4,6 +4,7 @@ import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import exceptions.ChaosModeException;
 import exceptions.RunAndGunException;
@@ -30,6 +31,7 @@ import modosDeJogo.GameModeContext;
 import modosDeJogo.GameModeRegistry;
 import modosDeJogo.ModoCaos;
 import modosDeJogo.ModoCampoMinado;
+import modosDeJogo.ModoPortal;
 import modosDeJogo.ModoRunGun;
 import pontuacao.ScoreManager;
 import sistemaDeMovimentacaoGeral.Direction;
@@ -50,6 +52,8 @@ public final class ModeSystemSmokeTest {
         verifyRunGunLifecycle();
         verifyRunGunProjectileCancellation();
         verifyModeSpecificExceptions();
+        verifyGoldenFruitAvoidsWallsAndObstacles();
+        verifyPortalAvoidsCompositeObstacles();
         System.out.println("All Snake Ultimate smoke tests passed.");
     }
 
@@ -200,6 +204,75 @@ public final class ModeSystemSmokeTest {
         mode.update(context); // Odd tick: projectiles retain their positions.
         mode.update(context); // Even tick: projectiles cross and must cancel.
         check(bullets.isEmpty(), "Opposing projectiles must cancel when their paths cross.");
+    }
+
+
+    /** Ensures Golden Fruit only uses a free interior cell, never a wall or obstacle cell. */
+    private static void verifyGoldenFruitAvoidsWallsAndObstacles() throws Exception {
+        Snake snake = new Snake(new Point(4, 4), Direction.RIGHT, 2);
+        ScoreManager score = new ScoreManager(Files.createTempDirectory("snake-golden-fruit-test").resolve("golden.score"));
+        Set<Point> onlyFreeCell = Set.of(new Point(3, 3));
+        GameModeContext context = new GameModeContext(snake, score, new Point(6, 6), 8, 8, 20,
+                position -> !onlyFreeCell.contains(position));
+        ModoFrutaDourada goldenFruitMode = new ModoFrutaDourada();
+        goldenFruitMode.init(snake, score);
+        for (int tick = 0; tick < 70; tick++) goldenFruitMode.update(context);
+
+        java.lang.reflect.Field fruitField = ModoFrutaDourada.class.getDeclaredField("goldenFruit");
+        fruitField.setAccessible(true);
+        Point goldenFruit = (Point) fruitField.get(goldenFruitMode);
+        check(goldenFruit != null, "Golden Fruit should spawn when its timer expires.");
+        check(goldenFruit.x > 0 && goldenFruit.x < context.getColumns() - 1
+                        && goldenFruit.y > 0 && goldenFruit.y < context.getRows() - 1,
+                "Golden Fruit must never spawn on the outer wall cells.");
+        check(!snake.getBody().contains(goldenFruit), "Golden Fruit must not spawn inside the snake.");
+        check(!goldenFruit.equals(context.getFood()), "Golden Fruit must not overlap regular food.");
+        check(!context.isPositionBlocked(goldenFruit), "Golden Fruit must not spawn inside an obstacle from another selected mode.");
+        check(goldenFruit.equals(new Point(3, 3)), "Golden Fruit should use the only available interior cell.");
+    }
+
+    /** Ensures Portal composition checks every translated segment against obstacles from other modes. */
+    private static void verifyPortalAvoidsCompositeObstacles() throws Exception {
+        Snake snake = new Snake(new Point(8, 2), Direction.RIGHT, 3);
+        ScoreManager score = new ScoreManager(Files.createTempDirectory("snake-portal-obstacle-test").resolve("portal.score"));
+
+        // Only this horizontal three-cell area is free for the translated snake.
+        Set<Point> freeCells = Set.of(
+                new Point(3, 5), new Point(4, 5), new Point(5, 5),
+                new Point(8, 8), new Point(8, 7));
+        ModoPortal portal = new ModoPortal(10, 10);
+        CompositeGameMode chaosComposition = new CompositeGameMode("chaos-test", "Chaos test",
+                List.of(portal, new TestObstacleMode(freeCells)));
+        chaosComposition.init(snake, score);
+
+        GameModeContext initialFood = new GameModeContext(snake, score, new Point(8, 8), 10, 10, 20,
+                chaosComposition::isPositionBlocked);
+        chaosComposition.onFoodPlaced(initialFood);
+
+        GameModeContext replacementFood = new GameModeContext(snake, score, new Point(8, 7), 10, 10, 20,
+                chaosComposition::isPositionBlocked);
+        chaosComposition.onFoodPlaced(replacementFood);
+
+        Set<Point> expectedBody = Set.of(new Point(3, 5), new Point(4, 5), new Point(5, 5));
+        check(new HashSet<>(snake.getBody()).equals(expectedBody),
+                "Portal must find the only free destination area in the combined obstacle map.");
+        for (Point segment : snake.getBody()) {
+            check(!chaosComposition.isPositionBlocked(segment),
+                    "No translated snake segment may overlap an obstacle from another selected mode.");
+            check(segment.x > 0 && segment.x < 9 && segment.y > 0 && segment.y < 9,
+                    "Portal must keep every snake segment inside the board's inner area.");
+        }
+        check(!snake.getBody().contains(replacementFood.getFood()), "Portal must not teleport the snake onto the replacement fruit.");
+    }
+
+    /** Minimal deterministic obstacle mode used to exercise composite collision rules. */
+    private static final class TestObstacleMode implements GameMode {
+        private final Set<Point> freeCells;
+        private TestObstacleMode(Set<Point> freeCells) { this.freeCells = new HashSet<>(freeCells); }
+        @Override public String getId() { return "test-obstacles"; }
+        @Override public String getName() { return "Test Obstacles"; }
+        @Override public void init(Snake snake, ScoreManager score) { }
+        @Override public boolean isPositionBlocked(Point position) { return position != null && !freeCells.contains(position); }
     }
 
     /** Throws an assertion with a readable message when a test condition is false. */
