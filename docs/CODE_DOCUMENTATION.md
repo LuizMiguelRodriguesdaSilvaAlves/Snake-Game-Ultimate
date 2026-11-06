@@ -196,5 +196,3 @@ These exceptions represent invalid lifecycle inputs, malformed update contexts, 
 ## 12. Build and verification
 
 The application targets Java 17 or newer and uses only the Java standard library. Run `scripts/test.sh` from the project root to compile the source and execute the dependency-free smoke tests. The tests cover the catalog size, unique mode IDs, Chaos boundaries and Normal/Reverse ordering probability, snake continuity/shrinking, independent score files, Minefield damage, Run & Gun lifecycle and projectile cancellation, and invalid-input handling for each of the eleven mode-specific exceptions.
-
-The three legacy README files from earlier development stages are intentionally excluded from this release. `README.md` and this technical reference are the authoritative documentation.
