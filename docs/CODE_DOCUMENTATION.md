@@ -43,7 +43,7 @@ A new mode should override only the capabilities it needs. It should not depend 
 
 ### `modosDeJogo.GameModeContext`
 
-This state-transfer object is passed to the modern update hook. It exposes the player snake, the active score manager, a defensive copy of the regular-food position, board dimensions and cell size. A mode can request game over without coupling itself to the UI layer.
+This state-transfer object is passed to update and food-placement hooks. It exposes the player snake, the active score manager, a defensive copy of the regular-food position, board dimensions and cell size. It also provides `isPositionBlocked(Point)`, backed by the combined obstacle map of the active mode (including every child of a composite such as Chaos). A mode can request game over without coupling itself to the UI layer.
 
 ### `modosDeJogo.GameModeRegistry`
 
@@ -51,7 +51,7 @@ The central factory returns fresh instances of the ten standard modes and five e
 
 ### `modosDeJogo.CompositeGameMode`
 
-This class composes several mode objects into one round. It delegates initialization, updates, drawing, food callbacks and keyboard input to its children in list order. It combines capabilities such as edge wrapping, blocked cells, timer delay and game-over state.
+This class composes several mode objects into one round. It delegates initialization, updates, drawing, food callbacks and keyboard input to its children in list order. The context-based food-placement callback is forwarded unchanged, so each child can query the combined obstacle map. It combines capabilities such as edge wrapping, blocked cells, timer delay and game-over state.
 
 For the Normal/Reverse conflict, the first of those two modes in the composition order determines whether regular food is enabled and whether the player is rendered as a snake or as the hunted fruit.
 
@@ -77,7 +77,8 @@ Chaos randomly selects zero to ten distinct standard modes. An intensity of zero
 ### Standard-mode implementation notes
 
 - `ModoCampoMinado` keeps mine coordinates in a set. When a mine is triggered, it first displays a warning. At detonation, a head hit ends the round; each non-head body segment in the blast removes one tail segment and one current-score point.
-- `ModoPortal` moves the complete body by the same translation vector, preserving the snake's shape.
+- `ModoPortal` moves the complete body by the same translation vector, preserving the snake's shape. It randomizes candidate head positions and validates every translated segment against the board walls, the replacement fruit and all obstacles contributed by the active composite before applying the teleport. If no fully free area exists, the mode reports a `PortalException` rather than placing the snake inside an obstacle.
+- `ModoFrutaDourada` searches only interior board cells and rejects the snake, regular food and every cell reported as blocked by the active composite. This keeps the bonus fruit away from outer walls and obstacles even when Golden Fruit is selected alongside other modes in Chaos.
 - `ModoReverso` keeps its enemy snakes and their AI state private to that mode. The common panel does not need to know the enemy implementation.
 - `ModoVelocidade` changes the Swing timer delay through `getTickDelay`, not by creating a second timer.
 - `ModoEspelho` changes input through `adjustDirection`, leaving direction validation inside `Snake`.
@@ -195,4 +196,4 @@ These exceptions represent invalid lifecycle inputs, malformed update contexts, 
 
 ## 12. Build and verification
 
-The application targets Java 17 or newer and uses only the Java standard library. Run `scripts/test.sh` from the project root to compile the source and execute the dependency-free smoke tests. The tests cover the catalog size, unique mode IDs, Chaos boundaries and Normal/Reverse ordering probability, snake continuity/shrinking, independent score files, Minefield damage, Run & Gun lifecycle and projectile cancellation, and invalid-input handling for each of the eleven mode-specific exceptions.
+The application targets Java 17 or newer and uses only the Java standard library. Run `scripts/test.sh` from the project root to compile the source and execute the dependency-free smoke tests. The tests cover the catalog size, unique mode IDs, Chaos boundaries and Normal/Reverse ordering probability, snake continuity/shrinking, independent score files, Minefield damage, Run & Gun lifecycle and projectile cancellation, Golden Fruit wall/obstacle avoidance, Portal relocation with a composite obstacle map, and invalid-input handling for each of the eleven mode-specific exceptions.

@@ -44,6 +44,8 @@ Enter the following sequence while the main menu is focused to open the secret s
 
 When Chaos is selected, the player chooses an intensity from 0 to 10. Zero activates the base Normal experience; values from 1 to 10 randomly select that many distinct standard modes. If both Normal and Reverse are selected, their execution order is randomized independently with a 50/50 chance. The first one in the composition order determines whether the round uses regular food and whether the player is drawn as a snake or as the hunted fruit.
 
+When Golden Fruit is active, its bonus fruit can only appear in a free interior cell: it never spawns on the outer board walls, on the snake, on regular food, or inside an obstacle contributed by another selected mode. When Portal and Obstacle Maze are both active, Portal checks the destination of every segment of the translated snake against the combined obstacle map. It only teleports the snake to a fully free interior area, keeping the whole body clear of walls, obstacles and the replacement fruit.
+
 ### Run & Gun rules
 
 - Use the arrow keys or `W`, `A`, `S`, `D` to move.
@@ -120,7 +122,7 @@ javac -encoding UTF-8 -cp out -d out tests/ModeSystemSmokeTest.java
 java -ea -Djava.awt.headless=true -cp out ModeSystemSmokeTest
 ```
 
-The tests verify the mode catalog sizes, Chaos composition and 50/50 precedence, strict Chaos intensity validation, snake body continuity and shrinking, independent score files, Minefield blast damage, Run & Gun projectile behavior, and the dedicated exception contract for all eleven new modes.
+The tests verify the mode catalog sizes, Chaos composition and 50/50 precedence, strict Chaos intensity validation, snake body continuity and shrinking, independent score files, Minefield blast damage, Run & Gun projectile behavior, Golden Fruit wall/obstacle avoidance, Portal teleportation around combined-mode obstacles, and the dedicated exception contract for all eleven new modes.
 
 ## Project status
 
