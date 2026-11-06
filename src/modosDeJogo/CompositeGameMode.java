@@ -32,8 +32,12 @@ public class CompositeGameMode implements GameMode {
     @Override public void update(GameModeContext context) { for (GameMode mode : modes) mode.update(context); }
     /** Draws all child overlays in composition order. */
     @Override public void draw(Graphics graphics, int cellSize) { for (GameMode mode : modes) mode.draw(graphics, cellSize); }
-    /** Broadcasts food placement to every child. */
+    /** Broadcasts legacy food placement notifications to every child. */
     @Override public void onFoodPlaced(Point food) { for (GameMode mode : modes) mode.onFoodPlaced(food); }
+    /** Broadcasts the full context, allowing each child to inspect all selected obstacles. */
+    @Override public void onFoodPlaced(GameModeContext context) {
+        for (GameMode mode : modes) mode.onFoodPlaced(context);
+    }
     /** Broadcasts food collection to every child. */
     @Override public void onFoodCollected(GameModeContext context) { for (GameMode mode : modes) mode.onFoodCollected(context); }
     /** Broadcasts key input to all children. */

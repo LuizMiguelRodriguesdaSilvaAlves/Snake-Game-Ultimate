@@ -24,7 +24,7 @@ public final class ModoFrutaDourada implements GameMode {
     /** Spawns a bonus fruit and awards five points plus one growth segment when collected. */
     @Override public void update(GameModeContext context) {
         if (context == null || context.getSnake() == null || context.getScore() == null
-                || context.getColumns() <= 0 || context.getRows() <= 0) {
+                || context.getColumns() < 3 || context.getRows() < 3) {
             throw new GoldenFruitException("Golden Fruit mode requires a valid game context and positive board dimensions.");
         }
         if (goldenFruit == null) {
@@ -49,15 +49,25 @@ public final class ModoFrutaDourada implements GameMode {
     /** Finds an empty cell that is not occupied by the player or regular food. */
     private Point findFreeCell(GameModeContext context) {
         for (int attempt = 0; attempt < 500; attempt++) {
-            Point candidate = new Point(random.nextInt(context.getColumns()), random.nextInt(context.getRows()));
-            if (!context.getSnake().getBody().contains(candidate) && !candidate.equals(context.getFood())) return candidate;
+            Point candidate = new Point(1 + random.nextInt(context.getColumns() - 2),
+                    1 + random.nextInt(context.getRows() - 2));
+            if (isFreeInteriorCell(candidate, context)) return candidate;
         }
-        for (int y = 0; y < context.getRows(); y++) {
-            for (int x = 0; x < context.getColumns(); x++) {
+        for (int y = 1; y < context.getRows() - 1; y++) {
+            for (int x = 1; x < context.getColumns() - 1; x++) {
                 Point candidate = new Point(x, y);
-                if (!context.getSnake().getBody().contains(candidate) && !candidate.equals(context.getFood())) return candidate;
+                if (isFreeInteriorCell(candidate, context)) return candidate;
             }
         }
-        throw new GoldenFruitException("No free cell is available for the golden fruit.");
+        throw new GoldenFruitException("No free interior cell is available for the golden fruit.");
+    }
+
+    /** Checks walls, snake body, regular food and obstacles contributed by other selected modes. */
+    private boolean isFreeInteriorCell(Point candidate, GameModeContext context) {
+        return candidate.x > 0 && candidate.x < context.getColumns() - 1
+                && candidate.y > 0 && candidate.y < context.getRows() - 1
+                && !context.getSnake().getBody().contains(candidate)
+                && !candidate.equals(context.getFood())
+                && !context.isPositionBlocked(candidate);
     }
 }

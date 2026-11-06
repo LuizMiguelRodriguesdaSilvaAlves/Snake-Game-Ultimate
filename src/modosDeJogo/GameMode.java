@@ -32,6 +32,15 @@ public interface GameMode {
     /** Notifies the mode whenever the regular food is placed or replaced. */
     default void onFoodPlaced(Point food) { }
 
+    /**
+     * Notifies the mode with the complete board context, including the combined
+     * obstacle map of the active mode. The legacy Point callback stays available.
+     */
+    default void onFoodPlaced(GameModeContext context) {
+        if (context == null) throw new IllegalArgumentException("Food placement context cannot be null.");
+        onFoodPlaced(context.getFood());
+    }
+
     /** Notifies the mode after the player collects regular food. */
     default void onFoodCollected(GameModeContext context) { }
 

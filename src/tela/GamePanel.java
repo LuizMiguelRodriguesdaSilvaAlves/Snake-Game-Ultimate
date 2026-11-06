@@ -125,7 +125,7 @@ public class GamePanel extends JPanel implements ActionListener {
 
     /** Creates an isolated update context for the active mode. */
     private GameModeContext createContext() {
-        return new GameModeContext(snake, score, food, columns, rows, cellSize);
+        return new GameModeContext(snake, score, food, columns, rows, cellSize, gameMode::isPositionBlocked);
     }
 
     /** Places regular food in a cell not occupied by the snake or mode obstacles. */
@@ -135,7 +135,7 @@ public class GamePanel extends JPanel implements ActionListener {
             Point candidate = new Point(random.nextInt(columns), random.nextInt(rows));
             if (!snake.getBody().contains(candidate) && !gameMode.isPositionBlocked(candidate)) {
                 food = candidate;
-                gameMode.onFoodPlaced(new Point(food));
+                gameMode.onFoodPlaced(createContext());
                 return;
             }
         }
@@ -143,7 +143,7 @@ public class GamePanel extends JPanel implements ActionListener {
             Point candidate = new Point(x, y);
             if (!snake.getBody().contains(candidate) && !gameMode.isPositionBlocked(candidate)) {
                 food = candidate;
-                gameMode.onFoodPlaced(new Point(food));
+                gameMode.onFoodPlaced(createContext());
                 return;
             }
         }

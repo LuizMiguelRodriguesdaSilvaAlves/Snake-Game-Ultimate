@@ -1,6 +1,7 @@
 package modosDeJogo;
 
 import java.awt.Point;
+import java.util.function.Predicate;
 import pontuacao.ScoreManager;
 import sistemaDeMovimentacaoGeral.Snake;
 
@@ -14,13 +15,25 @@ public final class GameModeContext {
     private final int columns;
     private final int rows;
     private final int cellSize;
+    private final Predicate<Point> blockedPosition;
     private Point food;
     private boolean endGameRequested;
 
-    /** Creates a context snapshot for one game update. */
+    /** Creates a context snapshot without additional mode-specific obstacles. */
     public GameModeContext(Snake snake, ScoreManager score, Point food, int columns, int rows, int cellSize) {
-        this.snake = snake; this.score = score; this.food = food == null ? null : new Point(food);
-        this.columns = columns; this.rows = rows; this.cellSize = cellSize;
+        this(snake, score, food, columns, rows, cellSize, position -> false);
+    }
+
+    /** Creates a context snapshot with a query for the combined obstacle map. */
+    public GameModeContext(Snake snake, ScoreManager score, Point food, int columns, int rows,
+            int cellSize, Predicate<Point> blockedPosition) {
+        this.snake = snake;
+        this.score = score;
+        this.food = food == null ? null : new Point(food);
+        this.columns = columns;
+        this.rows = rows;
+        this.cellSize = cellSize;
+        this.blockedPosition = blockedPosition == null ? position -> false : blockedPosition;
     }
     /** Returns the player snake. */
     public Snake getSnake() { return snake; }
@@ -36,6 +49,11 @@ public final class GameModeContext {
     public int getRows() { return rows; }
     /** Returns the rendered cell size in pixels. */
     public int getCellSize() { return cellSize; }
+    /** Returns whether a cell is occupied by an obstacle in any selected mode. */
+    public boolean isPositionBlocked(Point position) {
+        return position != null && blockedPosition.test(new Point(position));
+    }
+
     /** Requests a game-over transition after the current update finishes. */
     public void requestGameOver() { endGameRequested = true; }
     /** Indicates whether the current update requested game over. */
