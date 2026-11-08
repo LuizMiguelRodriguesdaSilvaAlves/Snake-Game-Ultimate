@@ -2,6 +2,8 @@
 
 An expanded Snake game built with Java and Swing. The project focuses on object-oriented design, modular game rules, reusable mode contracts, customizable visuals and independent score records.
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 ## Features
 
 - Java Swing desktop interface with keyboard controls.
@@ -127,3 +129,7 @@ The tests verify the mode catalog sizes, Chaos composition and 50/50 precedence,
 ## Project status
 
 This release contains the expanded mode system and the corrections documented above. The Java source is organized under `src/`; compiled output, IDE caches and personal score files should not be committed.
+
+## License
+
+This project is licensed under the [MIT License](LICENSE). You may use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the project, provided that the copyright and permission notice are included in all copies or substantial portions. See the [LICENSE](LICENSE) file for the complete terms.
