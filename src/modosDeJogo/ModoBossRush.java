@@ -617,11 +617,11 @@ public final class ModoBossRush implements GameMode {
         graphics.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 13));
         graphics.setColor(Color.WHITE);
         String bossLabel = boss == null ? "NEXT GUARDIAN" : boss.type.displayName.toUpperCase();
-        graphics.drawString("BOSS RUSH  |  CYCLE " + cycle + "  |  DEFEATED " + (bossesDefeated % 4) + "/4", 10, 18);
-        graphics.drawString(bossLabel, 10, 38);
+        graphics.drawString("BOSS RUSH  |  CYCLE " + cycle + "  |  DEFEATED " + (bossesDefeated % 4) + "/4", 10, 90);
+        graphics.drawString(bossLabel, 10, 110);
         if (boss != null) {
             int barX = Math.min(225, Math.max(150, columns * cellSize - 175));
-            int barY = 25;
+            int barY = 97;
             int barWidth = Math.max(100, columns * cellSize - barX - 12);
             graphics.setColor(new Color(55, 55, 65));
             graphics.fillRoundRect(barX, barY, barWidth, 13, 7, 7);
@@ -632,11 +632,11 @@ public final class ModoBossRush implements GameMode {
             graphics.drawRoundRect(barX, barY, barWidth, 13, 7, 7);
         }
         graphics.setColor(Color.WHITE);
-        graphics.drawString("LIVES: " + "♥ ".repeat(lives) + "   ENERGY: " + "● ".repeat(energy) + "○ ".repeat(MAX_ENERGY - energy), 10, 58);
-        graphics.drawString("SPACE: SHOOT  |  FRUIT: +1 ENERGY  |  DEFEAT: +1 LIFE", 10, 78);
+        graphics.drawString("LIVES: " + "♥ ".repeat(lives) + "   ENERGY: " + "● ".repeat(energy) + "○ ".repeat(MAX_ENERGY - energy), 10, 130);
+        graphics.drawString("SPACE: SHOOT  |  FRUIT: +1 ENERGY  |  DEFEAT: +1 LIFE", 10, 150);
         if (invulnerabilityTicks > 0 && (tick / 3) % 2 == 0) {
             graphics.setColor(new Color(255, 235, 130));
-            graphics.drawString("DAMAGE SHIELD", Math.max(10, columns * cellSize - 145), 58);
+            graphics.drawString("DAMAGE SHIELD", Math.max(10, columns * cellSize - 145), 130);
         }
         if (boss == null && intermissionTicks > 0) {
             graphics.setColor(new Color(255, 220, 110));
