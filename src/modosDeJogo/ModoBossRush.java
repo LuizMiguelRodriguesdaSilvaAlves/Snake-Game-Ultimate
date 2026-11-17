@@ -8,7 +8,6 @@ import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Random;
 import exceptions.BossRushException;
 import pontuacao.ScoreManager;
 import sistemaDeMovimentacaoGeral.Direction;
@@ -92,7 +91,6 @@ public final class ModoBossRush implements GameMode {
         }
     }
 
-    private final Random random = new Random();
     private final List<Projectile> projectiles = new ArrayList<>();
     private final List<Mine> mines = new ArrayList<>();
     private Snake player;
