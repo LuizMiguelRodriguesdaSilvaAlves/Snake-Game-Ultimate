@@ -93,7 +93,7 @@ Chaos randomly selects zero to ten distinct standard modes. An intensity of zero
 |---|---|---|
 | `ModoCaos` | `chaos` | Randomly composes standard mechanics at a selected intensity. |
 | `ModoRunGun` | `run-and-gun` | Hostile fruit AI, player/enemy projectiles, aiming, evasion, hit detection and projectile cancellation. |
-| `ModoBossRush` | `boss-rush` | Boss entities pursue the player and end the round on contact. |
+| `ModoBossRush` | `boss-rush` | Four sequential guardians with distinct pursuit, beam, mine and teleport/dash patterns; player projectiles, energy charges, lives, warnings and escalating cycles. |
 | `ModoContrarrelogio` | `time-attack` | Ninety-second countdown; the player tries to collect as much regular fruit as possible. |
 | `ModoGlitch` | `glitch` | Periodically rotates the requested movement direction by a random quarter-turn. |
 
@@ -107,6 +107,14 @@ Chaos randomly selects zero to ten distinct standard modes. An intensity of zero
 The mode's update method lets fruit opponents choose evasive movement and fire toward the player. Projectiles move on alternating game ticks. Any two projectiles are removed when they occupy the same cell or cross paths during a movement step. Player projectiles destroy fruit opponents and award points; enemy projectiles that hit the snake request game over.
 
 The Space key fires one player projectile in the snake's current direction. Movement remains controlled by the normal arrow-key or WASD input layer.
+
+### Boss Rush encounter loop
+
+`ModoBossRush` runs a four-guardian sequence: Crimson Hunter, Volt Sentinel, Rift Bomber and Void Sovereign. The player starts with three lives and two energy charges (maximum three). Space fires in the current movement direction and consumes one charge; collecting regular fruit restores one charge. A successful guardian defeat awards five points, restores up to one life and one energy charge, and starts a short transition before the next encounter. Completing all four guardians starts a new cycle, increases boss health, accelerates attack cooldowns and awards ten bonus points.
+
+Each guardian uses a separate attack pattern. Crimson Hunter pursues the player and telegraphs a straight-line dash. Volt Sentinel marks a complete row or column before firing an electric beam. Rift Bomber plants a timed mine at the player's position, which detonates over a 3x3 area. Void Sovereign alternates between a marked beam and a telegraphed phase shift followed by a dash. The warning indicators are drawn before damage can occur, so attacks are readable and avoidable. Any hit removes one life and grants 18 ticks of temporary damage protection; the round ends when no lives remain.
+
+Boss Rush keeps its logic inside the mode implementation and uses the existing `GameModeContext` for board dimensions, obstacle checks, score changes and game-over requests. It does not require a Boss Rush-specific branch in `GamePanel` or changes to the shared snake movement contract.
 
 ## 5. Player movement and collision state
 
@@ -196,4 +204,4 @@ These exceptions represent invalid lifecycle inputs, malformed update contexts, 
 
 ## 12. Build and verification
 
-The application targets Java 17 or newer and uses only the Java standard library. Run `scripts/test.sh` from the project root to compile the source and execute the dependency-free smoke tests. The tests cover the catalog size, unique mode IDs, Chaos boundaries and Normal/Reverse ordering probability, snake continuity/shrinking, independent score files, Minefield damage, Run & Gun lifecycle and projectile cancellation, Golden Fruit wall/obstacle avoidance, Portal relocation with a composite obstacle map, and invalid-input handling for each of the eleven mode-specific exceptions.
+The application targets Java 17 or newer and uses only the Java standard library. Run `scripts/test.sh` from the project root to compile the source and execute the dependency-free smoke tests. The tests cover the catalog size, unique mode IDs, Chaos boundaries and Normal/Reverse ordering probability, snake continuity/shrinking, independent score files, Minefield damage, Run & Gun lifecycle and projectile cancellation, Boss Rush shot charging, projectile damage, guardian defeat/reward, next-guardian progression and temporary damage protection, Golden Fruit wall/obstacle avoidance, Portal relocation with a composite obstacle map, and invalid-input handling for each of the eleven mode-specific exceptions.

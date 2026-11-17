@@ -11,6 +11,7 @@ An expanded Snake game built with Java and Swing. The project focuses on object-
 - Custom snake skins and visual themes.
 - Independent high scores for each mode.
 - A modular `GameMode` contract that allows new mechanics to be added without turning the game panel into a collection of mode-specific conditionals.
+- Boss Rush combat with four distinct guardians, telegraphed attacks, limited-energy shots, lives and escalating cycles.
 - Minefield blast damage that removes both score points and the corresponding number of snake tail segments.
 
 ## Standard game modes
@@ -38,7 +39,7 @@ Enter the following sequence while the main menu is focused to open the secret s
 |---|---|
 | Chaos | Randomly activates 0 to 10 distinct standard modes simultaneously and re-rolls the combination on each new round. |
 | Run & Gun | Press `Space` to fire at hostile fruit. Fruit opponents evade the player and shoot back. |
-| Boss Rush | Survive against boss cores that steadily hunt the snake. |
+| Boss Rush | Defeat four unique guardians using limited-energy shots while dodging telegraphed charges, electric beams, mines and void attacks. The sequence repeats with increased difficulty. |
 | Time Attack | Collect as much fruit as possible before the 90-second timer expires. |
 | Glitch | Directional controls periodically rotate by a random quarter-turn. |
 
@@ -56,10 +57,20 @@ When Golden Fruit is active, its bonus fruit can only appear in a free interior 
 - Any two projectiles are removed when they collide in the same cell or cross paths during a movement tick.
 - A player projectile destroys a fruit opponent and awards 10 points. An enemy projectile hitting the snake ends the round.
 
+### Boss Rush rules
+
+- Fight four guardians in order: Crimson Hunter, Volt Sentinel, Rift Bomber and Void Sovereign.
+- Start with three lives and two energy charges. The energy cap is three charges.
+- Press `Space` to fire in the snake's current direction. Each shot consumes one charge; collecting regular fruit restores one charge.
+- Bosses have individual health bars and attack patterns. Red charge paths, blue beam lanes, timed purple mines and the Void Sovereign's teleport marker warn the player before attacks resolve.
+- Taking damage removes one life and grants a short invulnerability window. Defeating a guardian awards five points, restores up to one life and one energy charge.
+- Defeating all four guardians starts a faster cycle with tougher bosses. Completing a cycle grants an additional ten points.
+
 ## Controls
 
 - Movement: Arrow keys or `W`, `A`, `S`, `D`.
 - Run & Gun firing: `Space`.
+- Boss Rush firing: `Space`.
 - Restart after a game-over screen: select **Play Again**.
 
 ## Architecture
@@ -124,7 +135,7 @@ javac -encoding UTF-8 -cp out -d out tests/ModeSystemSmokeTest.java
 java -ea -Djava.awt.headless=true -cp out ModeSystemSmokeTest
 ```
 
-The tests verify the mode catalog sizes, Chaos composition and 50/50 precedence, strict Chaos intensity validation, snake body continuity and shrinking, independent score files, Minefield blast damage, Run & Gun projectile behavior, Golden Fruit wall/obstacle avoidance, Portal teleportation around combined-mode obstacles, and the dedicated exception contract for all eleven new modes.
+The tests verify the mode catalog sizes, Chaos composition and 50/50 precedence, strict Chaos intensity validation, snake body continuity and shrinking, independent score files, Minefield blast damage, Run & Gun projectile behavior, Boss Rush energy, shooting, boss defeat, encounter progression and damage protection, Golden Fruit wall/obstacle avoidance, Portal teleportation around combined-mode obstacles, and the dedicated exception contract for all eleven new modes.
 
 ## Project status
 

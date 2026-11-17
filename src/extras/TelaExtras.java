@@ -39,7 +39,7 @@ public class TelaExtras extends JPanel {
         String label = switch (mode.getId()) {
             case "chaos" -> "CAOS — combine de 0 a 10 modos padrão";
             case "run-and-gun" -> "RUN & GUN — atire nas frutas e desvie dos disparos";
-            case "boss-rush" -> "BOSS RUSH — sobreviva aos chefes perseguidores";
+            case "boss-rush" -> "BOSS RUSH — derrote quatro guardiões, dispare e desvie dos ataques especiais";
             case "time-attack" -> "CONTRA O RELÓGIO — faça pontos em 90 segundos";
             case "glitch" -> "GLITCH — os controles giram aleatoriamente";
             default -> mode.getName();

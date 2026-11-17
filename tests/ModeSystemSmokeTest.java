@@ -50,6 +50,7 @@ public final class ModeSystemSmokeTest {
         verifyIndependentScores();
         verifyMinefieldDamage();
         verifyRunGunLifecycle();
+        verifyBossRushCombatAndProgression();
         verifyRunGunProjectileCancellation();
         verifyModeSpecificExceptions();
         verifyGoldenFruitAvoidsWallsAndObstacles();
@@ -179,6 +180,71 @@ public final class ModeSystemSmokeTest {
         GameModeContext context = new GameModeContext(snake, score, null, 30, 20, 20);
         for (int tick = 0; tick < 40; tick++) mode.update(context);
         check(score.getCurrentScore() >= 0, "Run & Gun score must remain non-negative.");
+    }
+
+
+    /** Exercises Boss Rush resources, projectile damage, guardian progression and damage protection. */
+    private static void verifyBossRushCombatAndProgression() throws Exception {
+        Snake snake = new Snake(new Point(15, 10), Direction.RIGHT, 4);
+        ScoreManager score = new ScoreManager(Files.createTempDirectory("snake-boss-rush-resource-test").resolve("boss-rush.score"));
+        ModoBossRush mode = new ModoBossRush();
+        mode.init(snake, score);
+        check(mode.usesFood(), "Boss Rush must keep regular fruit enabled.");
+        check(mode.getLives() == 3, "Boss Rush must start with three lives.");
+        check(mode.getEnergyCharges() == 2, "Boss Rush must start with two energy charges.");
+        check(mode.getCurrentBossName().equals("Crimson Hunter"), "Boss Rush must begin with Crimson Hunter.");
+
+        GameModeContext context = new GameModeContext(snake, score, null, 30, 20, 20);
+        mode.onKeyPressed(KeyEvent.VK_SPACE);
+        check(mode.getEnergyCharges() == 1, "Firing must consume one energy charge.");
+        mode.onFoodCollected(context);
+        check(mode.getEnergyCharges() == 2, "Collecting regular fruit must restore one energy charge.");
+
+        Snake combatSnake = new Snake(new Point(15, 10), Direction.RIGHT, 4);
+        ScoreManager combatScore = new ScoreManager(Files.createTempDirectory("snake-boss-rush-combat-test").resolve("boss-rush.score"));
+        ModoBossRush combatMode = new ModoBossRush();
+        combatMode.init(combatSnake, combatScore);
+        GameModeContext combatContext = new GameModeContext(combatSnake, combatScore, null, 30, 20, 20);
+
+        java.lang.reflect.Field bossField = ModoBossRush.class.getDeclaredField("boss");
+        bossField.setAccessible(true);
+        Object boss = bossField.get(combatMode);
+        setPrivateField(boss, "position", new Point(18, 10));
+        setPrivateIntField(boss, "moveCooldown", 1_000);
+        setPrivateIntField(boss, "actionCooldown", 1_000);
+        setPrivateIntField(boss, "health", 1);
+
+        combatMode.onKeyPressed(KeyEvent.VK_SPACE);
+        for (int tick = 0; tick < 4; tick++) combatMode.update(combatContext);
+        check(combatMode.getBossesDefeated() == 1, "A lethal projectile must defeat the active guardian.");
+        check(combatScore.getCurrentScore() == 5, "Defeating a guardian must award five points.");
+
+        for (int tick = 0; tick < 20; tick++) combatMode.update(combatContext);
+        check(combatMode.getCurrentBossName().equals("Volt Sentinel"), "Boss Rush must spawn the next guardian after the transition.");
+
+        boss = bossField.get(combatMode);
+        setPrivateField(boss, "position", combatSnake.getHead());
+        combatMode.update(combatContext);
+        check(combatMode.getLives() == 2, "Contact with a guardian must remove one life.");
+        combatMode.update(combatContext);
+        check(combatMode.getLives() == 2, "The damage-protection window must prevent consecutive hits.");
+
+        checkThrows(BossRushException.class, () -> combatMode.update((GameModeContext) null),
+                "Boss Rush must reject a missing update context.");
+    }
+
+    /** Sets one private object field for deterministic mode smoke tests. */
+    private static void setPrivateField(Object target, String name, Object value) throws Exception {
+        java.lang.reflect.Field field = target.getClass().getDeclaredField(name);
+        field.setAccessible(true);
+        field.set(target, value);
+    }
+
+    /** Sets one private integer field for deterministic mode smoke tests. */
+    private static void setPrivateIntField(Object target, String name, int value) throws Exception {
+        java.lang.reflect.Field field = target.getClass().getDeclaredField(name);
+        field.setAccessible(true);
+        field.setInt(target, value);
     }
 
     /** Confirms that opposing bullets disappear when they cross paths in the same movement tick. */
