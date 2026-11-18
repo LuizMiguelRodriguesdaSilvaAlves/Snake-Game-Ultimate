@@ -75,7 +75,6 @@ public final class LanServer implements AutoCloseable {
     private volatile MultiplayerRuleset selectedRuleset = MultiplayerRuleset.CLASSIC;
     private Point food = new Point(15,10);
     private int tick;
-    private int nextPlayerId = 1;
     private Thread acceptThread;
     private Thread gameThread;
 
@@ -117,7 +116,9 @@ public final class LanServer implements AutoCloseable {
                 MultiplayerProfile profile=new MultiplayerProfile(name,Integer.parseInt(fields[2]),Integer.parseInt(fields[3]),Integer.parseInt(fields[4]));
                 synchronized(this) {
                     if(players.size()>=MAX_PLAYERS) { peer.send("ERROR|ROOM_FULL"); peer.close(); return; }
-                    int id=nextPlayerId++;
+                    int id=1;
+                    while(players.containsKey(id) && id<=MAX_PLAYERS) id++;
+                    if(id>MAX_PLAYERS) { peer.send("ERROR|ROOM_FULL"); peer.close(); return; }
                     Point[] starts={new Point(5,5),new Point(24,14),new Point(5,14),new Point(24,5)};
                     PlayerState state=new PlayerState(id,profile,peer,starts[id-1]);
                     players.put(id,state); peer.player=state;
@@ -249,7 +250,7 @@ public final class LanServer implements AutoCloseable {
         peers.remove(peer);
         if(peer.player!=null) {
             players.remove(peer.player.id); votes.remove(peer.player.id);
-            if(peer.player.id==1) running=false;
+            if(peer.player.id==1) { running=false; close(); return; }
             broadcastLobby();
         }
         peer.close();

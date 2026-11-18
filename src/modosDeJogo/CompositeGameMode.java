@@ -61,8 +61,13 @@ public class CompositeGameMode implements GameMode {
     }
     /** Normal/Reverse order determines whether the player is a snake or hunted fruit. */
     @Override public boolean usesFood() {
-        // Golden Fruit explicitly requires a normal snake identity, so it suppresses Reverse.
-        if (indexOf("golden-fruit") >= 0) return true;
+        // Golden Fruit suppresses Reverse, while Run & Gun still controls regular-food availability.
+        if (indexOf("golden-fruit") >= 0) {
+            for (GameMode mode : modes) {
+                if (isModeActive(mode) && !mode.usesFood()) return false;
+            }
+            return true;
+        }
         int normal = indexOf("normal"), reverse = indexOf("reverse");
         if (normal >= 0 && reverse >= 0) return normal < reverse;
         if (reverse >= 0) return false;
