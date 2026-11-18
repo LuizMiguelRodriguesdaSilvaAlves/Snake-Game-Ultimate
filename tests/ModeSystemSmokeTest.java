@@ -142,7 +142,7 @@ public final class ModeSystemSmokeTest {
         List<GameMode> ordered = new java.util.ArrayList<>();
         ordered.add(GameModeRegistry.createStandard("reverse"));
         ordered.add(GameModeRegistry.createStandard("golden-fruit"));
-        CompositeGameMode composition = new CompositeGameMode("test-golden-reverse", "Test", ordered);
+        modosDeJogo.CompositeGameMode composition = new modosDeJogo.CompositeGameMode("test-golden-reverse", "Test", ordered);
         composition.init(snake, score);
         ModoReverso reverse = (ModoReverso) ordered.get(0);
         check(reverse.getCobraInimiga().isEmpty(), "Golden Fruit must prevent Reverse AI initialization regardless of selection order.");
