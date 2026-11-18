@@ -3,6 +3,10 @@ import java.awt.event.KeyEvent;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.net.ServerSocket;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -35,6 +39,8 @@ import modosDeJogo.ModoPortal;
 import modosDeJogo.ModoRunGun;
 import modosDeJogo.ModoReverso;
 import modosDeJogo.CompositeGameMode;
+import multiplayer.LanClient;
+import multiplayer.LanServer;
 import multiplayer.MultiplayerException;
 import multiplayer.MultiplayerProfile;
 import multiplayer.MultiplayerRuleset;
@@ -63,6 +69,7 @@ public final class ModeSystemSmokeTest {
         verifyGoldenFruitAvoidsWallsAndObstacles();
         verifyPortalAvoidsCompositeObstacles();
         verifyMultiplayerContracts();
+        verifyLanMajorityVoteAndSnapshots();
         System.out.println("All Snake Ultimate smoke tests passed.");
     }
 
@@ -391,6 +398,64 @@ public final class ModeSystemSmokeTest {
                 "Single-player Boss Rush must not be accepted as a multiplayer ruleset.");
         checkThrows(MultiplayerException.class, () -> new multiplayer.LanServer(80),
                 "LAN server ports below 1024 must be rejected.");
+    }
+
+    /** Runs a loopback LAN match to verify handshakes, majority voting and host tie-break. */
+    private static void verifyLanMajorityVoteAndSnapshots() throws Exception {
+        int port;
+        try (ServerSocket probe = new ServerSocket(0)) { port = probe.getLocalPort(); }
+        LanServer server = new LanServer(port);
+        CountDownLatch hostWelcome = new CountDownLatch(1);
+        CountDownLatch clientWelcome = new CountDownLatch(1);
+        CountDownLatch votesReady = new CountDownLatch(1);
+        CountDownLatch hostStarted = new CountDownLatch(1);
+        CountDownLatch clientStarted = new CountDownLatch(1);
+        CountDownLatch snapshotReceived = new CountDownLatch(1);
+        AtomicReference<String> selectedMode = new AtomicReference<>();
+        LanClient host = null;
+        LanClient guest = null;
+        try {
+            server.start();
+            host = new LanClient(new LanClient.Listener() {
+                @Override public void onWelcome(int id, boolean isHost) {
+                    check(id == 1 && isHost, "The first LAN connection must be the host.");
+                    hostWelcome.countDown();
+                }
+                @Override public void onLobby(String lobby) {
+                    if (lobby.contains("1:CLASSIC") && lobby.contains("2:COMBO")) votesReady.countDown();
+                }
+                @Override public void onStarted(String mode) {
+                    selectedMode.set(mode);
+                    hostStarted.countDown();
+                }
+                @Override public void onSnapshot(String snapshot) { snapshotReceived.countDown(); }
+            });
+            guest = new LanClient(new LanClient.Listener() {
+                @Override public void onWelcome(int id, boolean isHost) {
+                    check(id == 2 && !isHost, "The second LAN connection must be a guest.");
+                    clientWelcome.countDown();
+                }
+                @Override public void onStarted(String mode) { clientStarted.countDown(); }
+            });
+            MultiplayerProfile hostProfile = new MultiplayerProfile("Host", 0xFF00FF00, 0xFF008800, 0xFF000000);
+            MultiplayerProfile guestProfile = new MultiplayerProfile("Guest", 0xFFFF8800, 0xFFCC5500, 0xFF000000);
+            host.connect("127.0.0.1", port, hostProfile);
+            guest.connect("127.0.0.1", port, guestProfile);
+            check(hostWelcome.await(5, TimeUnit.SECONDS), "LAN host handshake timed out.");
+            check(clientWelcome.await(5, TimeUnit.SECONDS), "LAN guest handshake timed out.");
+            host.vote(MultiplayerRuleset.CLASSIC);
+            guest.vote(MultiplayerRuleset.COMBO);
+            check(votesReady.await(5, TimeUnit.SECONDS), "LAN votes were not registered by the host.");
+            host.startMatch();
+            check(hostStarted.await(5, TimeUnit.SECONDS), "The host did not receive the match-start packet.");
+            check(clientStarted.await(5, TimeUnit.SECONDS), "The guest did not receive the match-start packet.");
+            check(snapshotReceived.await(5, TimeUnit.SECONDS), "The server did not broadcast a match snapshot.");
+            check("CLASSIC".equals(selectedMode.get()), "A tied vote must be resolved using the host's vote.");
+        } finally {
+            if (host != null) host.close();
+            if (guest != null) guest.close();
+            server.close();
+        }
     }
 
     /** Throws an assertion with a readable message when a test condition is false. */
