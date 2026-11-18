@@ -1,5 +1,7 @@
 package multiplayer;
 
+import tela.Main;
+
 import javax.swing.*;
 import java.awt.*;
 import java.util.Map;
