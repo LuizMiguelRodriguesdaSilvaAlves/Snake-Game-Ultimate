@@ -154,6 +154,7 @@ public final class LanServer implements AutoCloseable {
         if(running) throw new MultiplayerException("The LAN match has already started.");
         if(players.size()<2) throw new MultiplayerException("At least two players must join before starting.");
         if(!votes.containsKey(1)) throw new MultiplayerException("The host must cast a vote before starting.");
+        if(votes.size()!=players.size()) throw new MultiplayerException("Every connected player must vote before the host can start the match.");
         selectedRuleset=resolveVote();
         running=true; tick=0; food=spawnFood();
         gameThread=new Thread(this::gameLoop,"snake-lan-game");

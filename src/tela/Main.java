@@ -5,6 +5,10 @@ import java.awt.*;
 
 import extras.TelaExtras;
 import multiplayer.MultiplayerMenuPanel;
+import multiplayer.MultiplayerLobbyPanel;
+import multiplayer.MultiplayerGamePanel;
+import multiplayer.LanServer;
+import multiplayer.MultiplayerProfile;
 import modosDeJogo.GameMode;
 import exceptions.MenuNavigationException;
 
@@ -57,6 +61,22 @@ public class Main {
     public static void mostrarMultiplayer() {
         frame.setContentPane(new MultiplayerMenuPanel());
         atualizarFrame();
+    }
+
+    /** Opens a host or client lobby after the connection parameters are validated. */
+    public static void mostrarLobby(LanServer server, String address, int port,
+            MultiplayerProfile profile, boolean host) {
+        if (frame == null) throw new MenuNavigationException("Main window has not been initialized.");
+        frame.setContentPane(new MultiplayerLobbyPanel(server, address, port, profile, host));
+        atualizarFrame();
+    }
+
+    /** Displays the authoritative LAN match renderer. */
+    public static void mostrarPartidaMultiplayer(MultiplayerGamePanel panel) {
+        if (frame == null || panel == null) throw new MenuNavigationException("A valid multiplayer game screen is required.");
+        frame.setContentPane(panel);
+        atualizarFrame();
+        panel.requestFocusInWindow();
     }
     /** Displays the map configuration screen. */
     public static void mostrarConfiguracaoMapa() {

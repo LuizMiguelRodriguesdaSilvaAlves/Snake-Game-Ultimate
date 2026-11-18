@@ -18,6 +18,7 @@ public final class MultiplayerLobbyPanel extends JPanel {
     private final String address;
     private final int port;
     private final MultiplayerProfile profile;
+    private MultiplayerGamePanel gamePanel;
 
     public MultiplayerLobbyPanel(LanServer server,String address,int port,MultiplayerProfile profile,boolean host) {
         this.server=server; this.address=address; this.port=port; this.profile=profile; this.host=host;
@@ -43,7 +44,18 @@ public final class MultiplayerLobbyPanel extends JPanel {
             }
             @Override public void onLobby(String state) { SwingUtilities.invokeLater(() -> updateLobby(state)); }
             @Override public void onStarted(String ruleset) {
-                SwingUtilities.invokeLater(() -> Main.mostrarPartidaMultiplayer(server,client,host,ruleset));
+                SwingUtilities.invokeLater(() -> {
+                    gamePanel = new MultiplayerGamePanel(server, client, host);
+                    Main.mostrarPartidaMultiplayer(gamePanel);
+                });
+            }
+            @Override public void onSnapshot(String snapshot) {
+                MultiplayerGamePanel current = gamePanel;
+                if (current != null) current.acceptSnapshot(snapshot);
+            }
+            @Override public void onGameOver() {
+                MultiplayerGamePanel current = gamePanel;
+                if (current != null) SwingUtilities.invokeLater(current::markGameOver);
             }
             @Override public void onError(String message) { SwingUtilities.invokeLater(() -> status.setText("Network: "+message)); }
             @Override public void onDisconnected() { SwingUtilities.invokeLater(() -> status.setText("Disconnected from host.")); }

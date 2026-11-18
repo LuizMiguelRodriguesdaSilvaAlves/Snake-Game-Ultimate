@@ -79,7 +79,7 @@ Chaos can select the ten standard modes and three compatible exclusive modes: Ru
 
 ## Multiplayer LAN
 
-The LAN multiplayer subsystem supports up to four players (one host and up to three clients). Players vote for a supported multiplayer ruleset; the most-voted mode wins, and the host's vote breaks a tie. Each computer loads its own saved snake head/body/outline colors and sends only those RGB values during the lobby handshake. The host runs the authoritative game simulation and broadcasts board snapshots to connected clients. The multiplayer-compatible catalog is separate from single-player modes whose mechanics assume one player snake (for example Reverse, Boss Rush and Run & Gun).
+The LAN multiplayer subsystem supports up to four players (one host and up to three clients). Players vote for one of four multiplayer rulesets: Classic, Combo, Progressive Speed or Wraparound. Every connected player must vote before the host can start. The most-voted ruleset wins; the host's vote breaks a tie. Each computer loads its own saved snake head/body/outline colors and sends only those RGB values during the lobby handshake. The host runs the authoritative game simulation and broadcasts board snapshots to connected clients. Reverse, Boss Rush and Run & Gun are intentionally excluded because their current mechanics assume one player entity.
 - Boss Rush firing: `Space`.
 - Restart after a game-over screen: select **Play Again**.
 
@@ -94,6 +94,8 @@ The project uses object-oriented composition and polymorphism:
 - `ModoCaos` builds a randomized composite from the ten standard modes.
 - `GamePanel` owns the shared movement loop, common collisions, food placement, rendering and score display. Mode-specific rules remain inside mode classes.
 - `Snake` owns body movement, growth, shrinking, wraparound movement and teleportation.
+- `multiplayer.LanServer` owns the authoritative TCP match, validates player input and resolves majority votes with host tie-break.
+- `multiplayer.LanClient` handles the line-based LAN protocol; `MultiplayerGamePanel` renders server snapshots without Java object deserialization.
 - `ScoreManager` stores one record per stable mode identifier.
 - Dedicated mode exceptions inherit from `GameModeException`, allowing precise diagnostics while preserving the shared game-over recovery path.
 

@@ -123,9 +123,9 @@ Boss Rush keeps its logic inside the mode implementation and uses the existing `
 
 ## 5. LAN multiplayer subsystem
 
-The `multiplayer` package is a separate host-authoritative TCP subsystem. The host accepts up to three remote peers, stores sanitized player profiles and RGB skin colors, receives direction inputs and broadcasts authoritative snapshots. The lobby uses majority voting; if multiple options have the same highest vote count, the host's selected option wins. The multiplayer catalog contains rulesets implemented for multiple independent snakes; single-player mechanics that assume one player entity remain in the single-player selectors.
+The `multiplayer` package is a separate host-authoritative TCP subsystem. The host accepts up to three remote peers, stores sanitized player profiles and RGB skin colors, receives direction inputs and broadcasts authoritative snapshots. The lobby uses majority voting; every connected player must vote before the host can start. If multiple options have the same highest vote count, the host's selected option wins. The current multiplayer catalog contains Classic, Combo, Progressive Speed and Wraparound rulesets implemented for multiple independent snakes; single-player mechanics that assume one player entity remain in the single-player selectors.
 
-The host simulation owns shared food, obstacles, player snake states, per-player scores and winner evaluation. Clients send only input and vote messages. The protocol is line-oriented and validates bounded message shapes; Java object deserialization is not used. Each client loads its own saved skin and transmits only three RGB color values during the connection handshake.
+The host simulation owns shared food, player snake states, per-player scores and collision evaluation. Clients send only input and vote messages. The protocol is line-oriented and validates bounded message shapes; Java object deserialization is not used. Each client loads its own saved skin and transmits only three RGB color values during the connection handshake.
 
 ## 5. Player movement and collision state
 
