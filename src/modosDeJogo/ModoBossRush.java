@@ -5,9 +5,14 @@ import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Point;
 import java.awt.event.KeyEvent;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import exceptions.BossRushException;
 import pontuacao.ScoreManager;
 import sistemaDeMovimentacaoGeral.Direction;
@@ -318,12 +323,12 @@ public final class ModoBossRush implements GameMode {
             current.warningTicks--;
             if (current.warningTicks == 0) {
                 performDash(context, current, 4);
-                current.actionCooldown = Math.max(12, 24 - cycle * 2);
+                current.actionCooldown = Math.max(8, 24 - cycle * 2 - (current.health <= current.maxHealth / 2 ? 5 : 0));
             }
             return;
         }
         if (--current.actionCooldown <= 0) {
-            Point target = context.getSnake().getHead();
+            Point target = predictPlayerPosition(context, 2);
             int dx = target.x - current.position.x;
             int dy = target.y - current.position.y;
             if (Math.abs(dx) >= Math.abs(dy)) {
@@ -360,7 +365,7 @@ public final class ModoBossRush implements GameMode {
             current.horizontalAttack = Math.abs(target.x - current.position.x) >= Math.abs(target.y - current.position.y);
             current.attackCoordinate = current.horizontalAttack ? target.y : target.x;
             current.warningTicks = 11;
-            current.actionCooldown = Math.max(17, 30 - cycle * 2);
+            current.actionCooldown = Math.max(12, 30 - cycle * 2 - (current.health <= current.maxHealth / 2 ? 5 : 0));
         }
     }
 
@@ -370,7 +375,10 @@ public final class ModoBossRush implements GameMode {
         if (--current.actionCooldown <= 0) {
             Point target = context.getSnake().getHead();
             mines.add(new Mine(target, 17));
-            current.actionCooldown = Math.max(20, 34 - cycle * 2);
+            if (current.health <= current.maxHealth / 2) {
+                mines.add(new Mine(predictPlayerPosition(context, 2), 22));
+            }
+            current.actionCooldown = Math.max(15, 34 - cycle * 2 - (current.health <= current.maxHealth / 2 ? 6 : 0));
         }
         if (--current.moveCooldown <= 0) {
             moveBossTowardPlayer(context, current);
@@ -408,7 +416,7 @@ public final class ModoBossRush implements GameMode {
                 current.teleportTarget = findTeleportDestination(context, current.position, target);
             }
             current.warningTicks = 13;
-            current.actionCooldown = Math.max(18, 31 - cycle * 2);
+            current.actionCooldown = Math.max(13, 31 - cycle * 2 - (current.health <= current.maxHealth / 2 ? 6 : 0));
         }
     }
 
@@ -439,14 +447,50 @@ public final class ModoBossRush implements GameMode {
         return false;
     }
 
+    /** Uses breadth-first pathfinding so pursuing bosses route around walls and maze obstacles. */
     private void moveBossTowardPlayer(GameModeContext context, Boss current) {
+        Point start = new Point(current.position);
         Point target = context.getSnake().getHead();
-        int dx = target.x - current.position.x;
-        int dy = target.y - current.position.y;
-        Point next;
-        if (Math.abs(dx) >= Math.abs(dy)) next = new Point(current.position.x + Integer.signum(dx), current.position.y);
-        else next = new Point(current.position.x, current.position.y + Integer.signum(dy));
-        moveBossTo(context, current, next);
+        ArrayDeque<Point> frontier = new ArrayDeque<>();
+        Map<Point, Point> previous = new HashMap<>();
+        Set<Point> visited = new HashSet<>();
+        frontier.add(start);
+        visited.add(start);
+        int[][] directions = {{1,0},{-1,0},{0,1},{0,-1}};
+
+        while (!frontier.isEmpty()) {
+            Point position = frontier.removeFirst();
+            if (position.equals(target)) break;
+            for (int[] direction : directions) {
+                Point next = new Point(position.x + direction[0], position.y + direction[1]);
+                if (next.x <= 0 || next.x >= columns - 1 || next.y <= 0 || next.y >= rows - 1
+                        || visited.contains(next) || context.isPositionBlocked(next)) continue;
+                if (!next.equals(target) && context.getSnake().getBody().contains(next)) continue;
+                visited.add(next);
+                previous.put(next, position);
+                frontier.addLast(next);
+            }
+        }
+
+        if (!visited.contains(target)) return;
+        Point step = target;
+        while (previous.containsKey(step) && !previous.get(step).equals(start)) step = previous.get(step);
+        moveBossTo(context, current, step);
+    }
+
+    /** Predicts a short, bounded movement lead for bosses with aimed attacks. */
+    private Point predictPlayerPosition(GameModeContext context, int leadTicks) {
+        Point head = context.getSnake().getHead();
+        int dx = 0, dy = 0;
+        switch (context.getSnake().getDirection()) {
+            case UP -> dy = -1;
+            case DOWN -> dy = 1;
+            case LEFT -> dx = -1;
+            case RIGHT -> dx = 1;
+        }
+        int x = Math.max(1, Math.min(columns - 2, head.x + dx * leadTicks));
+        int y = Math.max(1, Math.min(rows - 2, head.y + dy * leadTicks));
+        return new Point(x, y);
     }
 
     private void moveBossTo(GameModeContext context, Boss current, Point next) {
