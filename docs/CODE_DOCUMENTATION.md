@@ -41,6 +41,10 @@ This interface is the extension point for every game mode. The required methods 
 
 A new mode should override only the capabilities it needs. It should not depend on `GamePanel`, `JFrame` or another Swing component.
 
+### Dedicated mode HUD
+
+`GameMode.drawHud(Graphics, width, height)` renders status in a separate strip above the playfield. Common score and mode labels live in the session header, while `draw(Graphics, cellSize)` is reserved for board entities. Boss Rush, Combo, Reverse, Run & Gun and Time Attack use this separation to keep gameplay cells free of status text.
+
 ### `modosDeJogo.GameModeContext`
 
 This state-transfer object is passed to update and food-placement hooks. It exposes the player snake, the active score manager, a defensive copy of the regular-food position, board dimensions and cell size. It also provides `isPositionBlocked(Point)`, backed by the combined obstacle map of the active mode (including every child of a composite such as Chaos). A mode can request game over without coupling itself to the UI layer.
@@ -57,7 +61,7 @@ For the Normal/Reverse conflict, the first of those two modes in the composition
 
 ### `modosDeJogo.ModoCaos`
 
-Chaos randomly selects zero to ten distinct standard modes. An intensity of zero uses the base Normal experience without adding extra mechanics. Intensities from one through ten activate that many distinct standard modes. The selection is re-rolled whenever a new Chaos round is initialized. If both Normal and Reverse are selected, their relative order is randomized with an independent 50/50 decision.
+Chaos randomly selects zero to thirteen distinct compatible modes: the ten standard modes plus Run & Gun, Time Attack and Glitch. An intensity of zero uses the base Normal experience. Boss Rush and nested Chaos are never selected. The selection is re-rolled whenever a new Chaos round is initialized. If both Normal and Reverse are selected, their relative order is randomized with an independent 50/50 decision. When Normal precedes Reverse, Reverse is fully suppressed (initialization, updates, drawing and callbacks); when Reverse precedes Normal, the player becomes the hunted fruit and the Reverse AI is active. Run & Gun can coexist with Reverse because its hostile fruit opponents aim at the player's current head regardless of its rendered representation.
 
 ## 3. Standard game modes
 
@@ -84,7 +88,8 @@ Chaos randomly selects zero to ten distinct standard modes. An intensity of zero
 - `ModoEspelho` changes input through `adjustDirection`, leaving direction validation inside `Snake`.
 - `ModoObstaculos` exposes obstacle cells through `isPositionBlocked`, which is also used when placing regular food.
 - `ModoSemParedes` requests wraparound from the shared movement operation.
-- `ModoCombo` uses the food-collected callback and its own inactivity counter.
+- `ModoCombo` uses the food-collected callback, an expiring chain window and a capped escalating point bonus.
+- `ModoFrutaDourada` uses randomized spawn timing and a finite lifetime so that the bonus item must be collected before it expires.
 - `ModoFrutaDourada` owns a separate bonus-fruit coordinate and does not replace the regular fruit.
 
 ## 4. Konami-exclusive game modes
@@ -115,6 +120,12 @@ The Space key fires one player projectile in the snake's current direction. Move
 Each guardian uses a separate attack pattern. Crimson Hunter pursues the player and telegraphs a straight-line dash. Volt Sentinel marks a complete row or column before firing an electric beam. Rift Bomber plants a timed mine at the player's position, which detonates over a 3x3 area. Void Sovereign alternates between a marked beam and a telegraphed phase shift followed by a dash. The warning indicators are drawn before damage can occur, so attacks are readable and avoidable. Any hit removes one life and grants 18 ticks of temporary damage protection; the round ends when no lives remain.
 
 Boss Rush keeps its logic inside the mode implementation and uses the existing `GameModeContext` for board dimensions, obstacle checks, score changes and game-over requests. It does not require a Boss Rush-specific branch in `GamePanel` or changes to the shared snake movement contract.
+
+## 5. LAN multiplayer subsystem
+
+The `multiplayer` package is a separate host-authoritative TCP subsystem. The host accepts up to three remote peers, stores sanitized player profiles and RGB skin colors, receives direction inputs and broadcasts authoritative snapshots. The lobby uses majority voting; if multiple options have the same highest vote count, the host's selected option wins. The multiplayer catalog contains rulesets implemented for multiple independent snakes; single-player mechanics that assume one player entity remain in the single-player selectors.
+
+The host simulation owns shared food, obstacles, player snake states, per-player scores and winner evaluation. Clients send only input and vote messages. The protocol is line-oriented and validates bounded message shapes; Java object deserialization is not used. Each client loads its own saved skin and transmits only three RGB color values during the connection handshake.
 
 ## 5. Player movement and collision state
 

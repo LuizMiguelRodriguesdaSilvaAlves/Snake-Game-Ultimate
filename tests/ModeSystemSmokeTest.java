@@ -46,6 +46,7 @@ public final class ModeSystemSmokeTest {
         verifyModeCatalog();
         verifyChaosComposition();
         verifyChaosOrderChance();
+        verifyReverseSuppressionWhenNormalHasPriority();
         verifySnakeBodyAndShrink();
         verifyIndependentScores();
         verifyMinefieldDamage();
@@ -70,9 +71,11 @@ public final class ModeSystemSmokeTest {
     /** Confirms that Chaos supports both the zero-mode and ten-mode boundaries. */
     private static void verifyChaosComposition() {
         check(new ModoCaos(0).getModes().size() == 1, "Zero Chaos intensity must fall back to Normal mode.");
-        ModoCaos maximum = new ModoCaos(10);
-        check(maximum.getSelectedCount() == 10, "Chaos must retain the requested count.");
-        check(maximum.getModes().size() == 10, "Maximum Chaos intensity must compose ten modes.");
+        ModoCaos maximum = new ModoCaos(13);
+        check(maximum.getSelectedCount() == 13, "Chaos must retain the requested count.");
+        check(maximum.getModes().size() == 13, "Maximum Chaos intensity must compose thirteen compatible modes.");
+        check(maximum.getModes().stream().noneMatch(mode -> "boss-rush".equals(mode.getId()) || "chaos".equals(mode.getId())),
+                "Chaos must exclude Boss Rush and nested Chaos.");
         Set<String> ids = new HashSet<>();
         for (GameMode mode : maximum.getModes()) check(ids.add(mode.getId()), "Chaos selected a duplicate mode.");
     }
@@ -82,7 +85,7 @@ public final class ModeSystemSmokeTest {
         int normalFirst = 0;
         int samples = 1_000;
         for (int sample = 0; sample < samples; sample++) {
-            ModoCaos chaos = new ModoCaos(10);
+            ModoCaos chaos = new ModoCaos(13);
             int normalIndex = -1;
             int reverseIndex = -1;
             for (int index = 0; index < chaos.getModes().size(); index++) {
@@ -100,7 +103,7 @@ public final class ModeSystemSmokeTest {
     /** Verifies that each new mode exposes and throws its dedicated exception for invalid input. */
     private static void verifyModeSpecificExceptions() throws Exception {
         checkThrows(ChaosModeException.class, () -> new ModoCaos(-1), "Chaos must reject negative intensity.");
-        checkThrows(ChaosModeException.class, () -> new ModoCaos(11), "Chaos must reject intensity above ten.");
+        checkThrows(ChaosModeException.class, () -> new ModoCaos(14), "Chaos must reject intensity above thirteen.");
 
         Path directory = Files.createTempDirectory("snake-mode-exception-test");
         ScoreManager score = new ScoreManager(directory.resolve("test.score"));
@@ -114,6 +117,21 @@ public final class ModeSystemSmokeTest {
         checkThrows(MirroredControlsException.class, () -> new ModoEspelho().adjustDirection(null), "Mirrored Controls must reject a missing direction.");
         checkThrows(SpeedModeException.class, () -> new ModoVelocidade().getTickDelay(-1), "Progressive Speed must reject a negative score.");
         checkThrows(NoWallsException.class, () -> new ModoSemParedes().init(null, score), "No Walls must reject a missing player.");
+    }
+
+
+    /** Confirms that Reverse's pursuit AI is fully disabled when Normal has priority. */
+    private static void verifyReverseSuppressionWhenNormalHasPriority() throws Exception {
+        Snake snake = new Snake(new Point(15, 10), Direction.RIGHT, 4);
+        ScoreManager score = new ScoreManager(Files.createTempDirectory("snake-chaos-reverse-test").resolve("chaos.score"));
+        List<GameMode> ordered = new java.util.ArrayList<>();
+        ordered.add(GameModeRegistry.createStandard("normal"));
+        ordered.add(GameModeRegistry.createStandard("reverse"));
+        modosDeJogo.CompositeGameMode composition =
+                new modosDeJogo.CompositeGameMode("test", "Test", ordered);
+        composition.init(snake, score);
+        ModoReverso reverse = (ModoReverso) ordered.get(1);
+        check(reverse.getCobraInimiga().isEmpty(), "Reverse AI must not initialize when Normal precedes Reverse.");
     }
 
     /** Confirms that an action throws the expected exception type. */

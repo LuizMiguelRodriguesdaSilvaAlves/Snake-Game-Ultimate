@@ -26,9 +26,11 @@ public final class ModoContrarrelogio implements GameMode {
         if (remainingTicks > 0) remainingTicks--;
         if (remainingTicks <= 0) context.requestGameOver();
     }
-    /** Displays the remaining time in seconds. */
-    @Override public void draw(Graphics g, int cellSize) {
+    /** Keeps the board clear; countdown information is rendered in the HUD strip. */
+    @Override public void draw(Graphics g, int cellSize) { }
+    /** Displays the remaining time in seconds above the board. */
+    @Override public void drawHud(Graphics g, int width, int height) {
         g.setColor(new Color(255,220,100)); g.setFont(new Font(Font.SANS_SERIF,Font.BOLD,16));
-        g.drawString(String.format("TEMPO: %02d:%02d", remainingTicks/600, (remainingTicks%600)/10), 430, 20);
+        g.drawString(String.format("TIME: %02d:%02d", remainingTicks/600, (remainingTicks%600)/10), 12, 18);
     }
 }

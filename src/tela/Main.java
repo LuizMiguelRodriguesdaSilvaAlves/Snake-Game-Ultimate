@@ -4,6 +4,7 @@ import javax.swing.*;
 import java.awt.*;
 
 import extras.TelaExtras;
+import multiplayer.MultiplayerMenuPanel;
 import modosDeJogo.GameMode;
 import exceptions.MenuNavigationException;
 
@@ -52,6 +53,11 @@ public class Main {
         atualizarFrame();
     }
 
+    /** Displays the LAN multiplayer entry screen. */
+    public static void mostrarMultiplayer() {
+        frame.setContentPane(new MultiplayerMenuPanel());
+        atualizarFrame();
+    }
     /** Displays the map configuration screen. */
     public static void mostrarConfiguracaoMapa() {
         frame.setContentPane(new TelaConfiguracaoMapa());
@@ -127,6 +133,10 @@ public class Main {
             @Override
             public void abrirExtras() {
                 mostrarExtras();
+            }
+            @Override
+            public void abrirMultiplayer() {
+                mostrarMultiplayer();
             }
         };
     }

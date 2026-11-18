@@ -32,6 +32,7 @@ public class MenuInicial extends JPanel {
         void abrirPersonalizacaoCobra();
         void abrirConfiguracaoMapa();
         void abrirExtras();
+        void abrirMultiplayer();
     }
 
     public MenuInicial(MenuListener listener) {
@@ -43,28 +44,32 @@ public class MenuInicial extends JPanel {
         this.listener = listener;
 
         setPreferredSize(new Dimension(600, 400));
-        setLayout(new GridLayout(4, 1, 10, 10));
+        setLayout(new GridLayout(5, 1, 10, 10));
         setBackground(Color.BLACK);
         setBorder(BorderFactory.createEmptyBorder(40, 80, 40, 80));
 
         JButton btnIniciarJogo = new JButton("Iniciar Jogo");
         JButton btnPersonalizar = new JButton("Personalizar Cobra");
         JButton btnMapa = new JButton("Configurações do Mapa");
+        JButton btnMultiplayer = new JButton("Multiplayer LAN");
         JButton btnSair = new JButton("Sair");
 
         estilizar(btnIniciarJogo);
         estilizar(btnPersonalizar);
         estilizar(btnMapa);
+        estilizar(btnMultiplayer);
         estilizar(btnSair);
 
         btnIniciarJogo.addActionListener(e -> listener.iniciarJogo());
         btnPersonalizar.addActionListener(e -> listener.abrirPersonalizacaoCobra());
         btnMapa.addActionListener(e -> listener.abrirConfiguracaoMapa());
+        btnMultiplayer.addActionListener(e -> listener.abrirMultiplayer());
         btnSair.addActionListener(e -> System.exit(0));
 
         add(btnIniciarJogo);
         add(btnPersonalizar);
         add(btnMapa);
+        add(btnMultiplayer);
         add(btnSair);
 
         configurarKonamiCode();

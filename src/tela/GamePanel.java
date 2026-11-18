@@ -12,6 +12,7 @@ import personalizacaoCobra.SnakeSkinManager;
 import sistemaDeMovimentacaoGeral.Direction;
 import sistemaDeMovimentacaoGeral.Snake;
 import javax.swing.JPanel;
+import javax.swing.JLabel;
 import javax.swing.Timer;
 import javax.swing.SwingUtilities;
 import java.awt.Color;
@@ -39,6 +40,11 @@ public class GamePanel extends JPanel implements ActionListener {
 
     private final GameMode gameMode;
     private final Random random = new Random();
+    private final JPanel boardCanvas;
+    private final JPanel modeHudCanvas;
+    private final JLabel modeLabel = new JLabel();
+    private final JLabel scoreLabel = new JLabel();
+    private final JLabel recordLabel = new JLabel();
     private Snake snake;
     private Timer timer;
     private Point food;
@@ -52,11 +58,41 @@ public class GamePanel extends JPanel implements ActionListener {
     public GamePanel(GameMode mode) {
         if (mode == null) throw new IllegalArgumentException("Game mode cannot be null.");
         gameMode = mode;
-        setPreferredSize(new Dimension(width, height));
+        setLayout(new java.awt.BorderLayout(0, 0));
+        setPreferredSize(new Dimension(width, height + 105));
         setFocusable(true);
         setBackground(Color.BLACK);
+        JPanel commonHud = new JPanel(new java.awt.GridLayout(1, 3, 12, 0));
+        commonHud.setBackground(Color.BLACK);
+        commonHud.setBorder(javax.swing.BorderFactory.createEmptyBorder(8, 12, 8, 12));
+        styleHudLabel(modeLabel); styleHudLabel(scoreLabel); styleHudLabel(recordLabel);
+        commonHud.add(modeLabel); commonHud.add(scoreLabel); commonHud.add(recordLabel);
+        modeHudCanvas = new JPanel() {
+            @Override protected void paintComponent(Graphics graphics) {
+                super.paintComponent(graphics);
+                gameMode.drawHud(graphics, getWidth(), getHeight());
+            }
+        };
+        modeHudCanvas.setBackground(Color.BLACK);
+        modeHudCanvas.setPreferredSize(new Dimension(width, 70));
+        JPanel header = new JPanel(new java.awt.BorderLayout(0, 0));
+        header.setBackground(Color.BLACK);
+        header.add(commonHud, java.awt.BorderLayout.NORTH);
+        header.add(modeHudCanvas, java.awt.BorderLayout.CENTER);
+        boardCanvas = new JPanel() {
+            @Override protected void paintComponent(Graphics graphics) {
+                super.paintComponent(graphics);
+                paintBoard(graphics);
+            }
+        };
+        boardCanvas.setBackground(Color.BLACK);
+        boardCanvas.setPreferredSize(new Dimension(width, height));
+        boardCanvas.setFocusable(false);
+        add(header, java.awt.BorderLayout.NORTH);
+        add(boardCanvas, java.awt.BorderLayout.CENTER);
         setupKeyListener();
         initGame();
+        refreshHud();
     }
 
     /** Creates the snake, mode-specific score manager and Swing game timer. */
@@ -115,7 +151,7 @@ public class GamePanel extends JPanel implements ActionListener {
             if (context.isGameOverRequested() || gameMode.isGameOver()) { gameOver(); return; }
 
             timer.setDelay(gameMode.getTickDelay(score.getCurrentScore()));
-            repaint();
+            refreshHud(); boardCanvas.repaint(); modeHudCanvas.repaint();
         } catch (RuntimeException exception) {
             // Mode-specific failures end the round without leaving the Swing timer running.
             gameOver();
@@ -165,7 +201,7 @@ public class GamePanel extends JPanel implements ActionListener {
         Window window = SwingUtilities.getWindowAncestor(this);
         if (!(window instanceof JFrame frame)) return;
         GameOverScreen screen = new GameOverScreen(frame, score, gameMode);
-        screen.setPreferredSize(new Dimension(width, height));
+        screen.setPreferredSize(new Dimension(width, height + 105));
         frame.setContentPane(screen);
         frame.pack(); frame.setLocationRelativeTo(null); frame.revalidate(); frame.repaint();
     }
@@ -182,17 +218,26 @@ public class GamePanel extends JPanel implements ActionListener {
     /** Returns the current user-selected visual theme. */
     private TemaVisual getTheme() { return UserSettings.getTema(); }
 
-    /** Paints the board, player, regular food, mode entities and score information. */
-    @Override protected void paintComponent(Graphics graphics) {
-        super.paintComponent(graphics);
+    /** Paints only board contents; status labels are rendered in separate HUD panels. */
+    private void paintBoard(Graphics graphics) {
         TemaVisual theme = getTheme();
-        setBackground(theme.getFundo());
+        boardCanvas.setBackground(theme.getFundo());
         drawGrid(graphics, theme);
         if (gameMode.usesFood() && food != null) drawFood(graphics, theme);
         if (gameMode.rendersPlayerAsFood()) drawPlayerAsFood(graphics, theme);
         else drawSnake(graphics, theme);
         gameMode.draw(graphics, cellSize);
-        drawHud(graphics, theme);
+    }
+    /** Styles a shared session label. */
+    private void styleHudLabel(JLabel label) {
+        label.setForeground(Color.WHITE);
+        label.setFont(new java.awt.Font(java.awt.Font.SANS_SERIF, java.awt.Font.BOLD, 13));
+    }
+    /** Refreshes common mode, score and record labels after each tick. */
+    private void refreshHud() {
+        modeLabel.setText("MODO: " + gameMode.getName());
+        scoreLabel.setText("PONTUAÇÃO: " + score.getCurrentScore());
+        recordLabel.setText("RECORDE: " + score.getHighScore());
     }
 
     /** Draws the board grid using the selected theme's grid color. */
@@ -218,7 +263,8 @@ public class GamePanel extends JPanel implements ActionListener {
             int x = segment.x * cellSize, y = segment.y * cellSize;
             graphics.setColor(first ? headColor : bodyColor);
             graphics.fillRect(x, y, cellSize, cellSize);
-            graphics.setColor(theme.getBordaCobra());
+            Color outlineColor = skin.getOutlineColor() != null ? skin.getOutlineColor() : theme.getBordaCobra();
+            graphics.setColor(outlineColor);
             graphics.drawRect(x, y, cellSize, cellSize);
             first = false;
         }

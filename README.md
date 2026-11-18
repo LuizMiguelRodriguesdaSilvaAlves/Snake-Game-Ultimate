@@ -8,6 +8,8 @@ An expanded Snake game built with Java and Swing. The project focuses on object-
 
 - Java Swing desktop interface with keyboard controls.
 - Ten standard game modes and five Konami Code-exclusive modes.
+- Chaos can combine up to thirteen compatible standard and exclusive modes; Boss Rush remains a standalone challenge.
+- LAN multiplayer supports up to four players with majority mode voting and host tie-break.
 - Custom snake skins and visual themes.
 - Independent high scores for each mode.
 - A modular `GameMode` contract that allows new mechanics to be added without turning the game panel into a collection of mode-specific conditionals.
@@ -37,7 +39,7 @@ Enter the following sequence while the main menu is focused to open the secret s
 
 | Mode | Description |
 |---|---|
-| Chaos | Randomly activates 0 to 10 distinct standard modes simultaneously and re-rolls the combination on each new round. |
+| Chaos | Randomly activates 0 to 13 distinct compatible modes (ten standard plus Run & Gun, Time Attack and Glitch); Boss Rush and nested Chaos are excluded. |
 | Run & Gun | Press `Space` to fire at hostile fruit. Fruit opponents evade the player and shoot back. |
 | Boss Rush | Defeat four unique guardians using limited-energy shots while dodging telegraphed charges, electric beams, mines and void attacks. The sequence repeats with increased difficulty. |
 | Time Attack | Collect as much fruit as possible before the 90-second timer expires. |
@@ -48,6 +50,10 @@ Enter the following sequence while the main menu is focused to open the secret s
 When Chaos is selected, the player chooses an intensity from 0 to 10. Zero activates the base Normal experience; values from 1 to 10 randomly select that many distinct standard modes. If both Normal and Reverse are selected, their execution order is randomized independently with a 50/50 chance. The first one in the composition order determines whether the round uses regular food and whether the player is drawn as a snake or as the hunted fruit.
 
 When Golden Fruit is active, its bonus fruit can only appear in a free interior cell: it never spawns on the outer board walls, on the snake, on regular food, or inside an obstacle contributed by another selected mode. When Portal and Obstacle Maze are both active, Portal checks the destination of every segment of the translated snake against the combined obstacle map. It only teleports the snake to a fully free interior area, keeping the whole body clear of walls, obstacles and the replacement fruit.
+
+### Chaos compatibility rules
+
+Chaos can select the ten standard modes and three compatible exclusive modes: Run & Gun, Time Attack and Glitch. It never selects Boss Rush or another Chaos instance. If Normal is ordered before Reverse, Reverse is suppressed completely (including its AI updates and rendering), so the player remains a snake and is not hunted by Reverse enemies. If Reverse is ordered first, the player becomes the hunted fruit and Reverse is active. Run & Gun can coexist with Reverse; its hostile fruit continues aiming at the player target while the Reverse snakes pursue the same target.
 
 ### Run & Gun rules
 
@@ -70,6 +76,10 @@ When Golden Fruit is active, its bonus fruit can only appear in a free interior 
 
 - Movement: Arrow keys or `W`, `A`, `S`, `D`.
 - Run & Gun firing: `Space`.
+
+## Multiplayer LAN
+
+The LAN multiplayer subsystem supports up to four players (one host and up to three clients). Players vote for a supported multiplayer ruleset; the most-voted mode wins, and the host's vote breaks a tie. Each computer loads its own saved snake head/body/outline colors and sends only those RGB values during the lobby handshake. The host runs the authoritative game simulation and broadcasts board snapshots to connected clients. The multiplayer-compatible catalog is separate from single-player modes whose mechanics assume one player snake (for example Reverse, Boss Rush and Run & Gun).
 - Boss Rush firing: `Space`.
 - Restart after a game-over screen: select **Play Again**.
 

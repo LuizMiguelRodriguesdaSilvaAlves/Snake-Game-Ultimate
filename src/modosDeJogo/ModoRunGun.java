@@ -121,7 +121,11 @@ public final class ModoRunGun implements GameMode {
             int x=bullet.x*cellSize+cellSize/4, y=bullet.y*cellSize+cellSize/4;
             g.fillOval(x,y,cellSize/2,cellSize/2);
         }
-        g.setColor(Color.WHITE); g.drawString("ESPAÇO: ATIRAR | Alvos: " + enemies.size(), 10, 80);
+    }
+    /** Draws firing instructions and the remaining enemy count outside the board. */
+    @Override public void drawHud(Graphics g, int width, int height) {
+        g.setColor(Color.WHITE);
+        g.drawString("SPACE: FIRE  |  TARGETS: " + enemies.size(), 12, 18);
     }
     /** Selects a random unoccupied cell for a fruit opponent. */
     private Point randomFreeCell(int cols, int rows) {

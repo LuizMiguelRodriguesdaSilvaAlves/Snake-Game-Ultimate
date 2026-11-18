@@ -222,14 +222,13 @@ public final class ModoBossRush implements GameMode {
         return Math.max(72, 100 - (cycle - 1) * 4);
     }
 
-    /** Draws the active guardian, warnings, projectiles, mines and combat HUD. */
+    /** Draws combat entities inside the board, keeping status out of the playfield. */
     @Override public void draw(Graphics graphics, int cellSize) {
         if (graphics == null || cellSize <= 0) throw new BossRushException("Boss Rush requires valid drawing graphics and cell size.");
         drawWarnings(graphics, cellSize);
         drawMines(graphics, cellSize);
         drawProjectiles(graphics, cellSize);
         drawBoss(graphics, cellSize);
-        drawHud(graphics, cellSize);
     }
 
     /** Read-only status accessors used by the UI smoke tests and diagnostics. */
@@ -611,34 +610,29 @@ public final class ModoBossRush implements GameMode {
         }
     }
 
-    private void drawHud(Graphics graphics, int cellSize) {
-        graphics.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 13));
+    /** Draws encounter status in the dedicated HUD strip above the board. */
+    @Override public void drawHud(Graphics graphics, int width, int height) {
+        graphics.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 12));
         graphics.setColor(Color.WHITE);
         String bossLabel = boss == null ? "NEXT GUARDIAN" : boss.type.displayName.toUpperCase();
-        graphics.drawString("BOSS RUSH  |  CYCLE " + cycle + "  |  DEFEATED " + (bossesDefeated % 4) + "/4", 10, 90);
-        graphics.drawString(bossLabel, 10, 110);
+        graphics.drawString("BOSS RUSH  |  CYCLE " + cycle + "  |  DEFEATED " + (bossesDefeated % 4) + "/4", 12, 15);
+        graphics.drawString(bossLabel, 12, 38);
         if (boss != null) {
-            int barX = Math.min(225, Math.max(150, columns * cellSize - 175));
-            int barY = 97;
-            int barWidth = Math.max(100, columns * cellSize - barX - 12);
-            graphics.setColor(new Color(55, 55, 65));
-            graphics.fillRoundRect(barX, barY, barWidth, 13, 7, 7);
+            int barX = Math.max(185, width - 180);
+            int barWidth = Math.max(100, width - barX - 12);
+            graphics.setColor(new Color(55, 55, 65)); graphics.fillRoundRect(barX, 27, barWidth, 12, 7, 7);
             graphics.setColor(boss.type.color);
             int filledWidth = (int) (barWidth * (boss.health / (double) boss.maxHealth));
-            graphics.fillRoundRect(barX, barY, Math.max(0, filledWidth), 13, 7, 7);
-            graphics.setColor(Color.WHITE);
-            graphics.drawRoundRect(barX, barY, barWidth, 13, 7, 7);
+            graphics.fillRoundRect(barX, 27, Math.max(0, filledWidth), 12, 7, 7);
+            graphics.setColor(Color.WHITE); graphics.drawRoundRect(barX, 27, barWidth, 12, 7, 7);
         }
         graphics.setColor(Color.WHITE);
-        graphics.drawString("LIVES: " + "♥ ".repeat(lives) + "   ENERGY: " + "● ".repeat(energy) + "○ ".repeat(MAX_ENERGY - energy), 10, 130);
-        graphics.drawString("SPACE: SHOOT  |  FRUIT: +1 ENERGY  |  DEFEAT: +1 LIFE", 10, 150);
+        graphics.drawString("LIVES: " + "♥ ".repeat(lives) + "   ENERGY: " + "● ".repeat(energy) + "○ ".repeat(MAX_ENERGY - energy), 12, 59);
         if (invulnerabilityTicks > 0 && (tick / 3) % 2 == 0) {
-            graphics.setColor(new Color(255, 235, 130));
-            graphics.drawString("DAMAGE SHIELD", Math.max(10, columns * cellSize - 145), 130);
+            graphics.setColor(new Color(255, 235, 130)); graphics.drawString("DAMAGE SHIELD", Math.max(12, width - 130), 59);
         }
         if (boss == null && intermissionTicks > 0) {
-            graphics.setColor(new Color(255, 220, 110));
-            graphics.drawString("GUARDIAN DEFEATED - PREPARE FOR THE NEXT FIGHT", 115, rows * cellSize - 12);
+            graphics.setColor(new Color(255, 220, 110)); graphics.drawString("GUARDIAN DEFEATED - NEXT FIGHT", Math.max(12, width - 235), 15);
         }
     }
 }

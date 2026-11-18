@@ -128,7 +128,8 @@ public class TelaPersonalizacaoCobra extends JPanel {
                     SkinType.PADRAO,
                     corCabeca,
                     corCorpo,
-                    null
+                    null,
+                    corBorda
             );
 
             SnakeSkinManager.setSkin(novaSkin);

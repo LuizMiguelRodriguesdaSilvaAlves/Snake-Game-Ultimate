@@ -26,8 +26,11 @@ public interface GameMode {
     /** Legacy update hook retained for simple and existing modes. */
     default void update(Snake snake) { }
 
-    /** Draws mode-specific entities above the board. */
+    /** Draws mode-specific entities inside the board. */
     default void draw(Graphics graphics, int cellSize) { }
+
+    /** Draws mode status in the dedicated information strip above the board. */
+    default void drawHud(Graphics graphics, int width, int height) { }
 
     /** Notifies the mode whenever the regular food is placed or replaced. */
     default void onFoodPlaced(Point food) { }

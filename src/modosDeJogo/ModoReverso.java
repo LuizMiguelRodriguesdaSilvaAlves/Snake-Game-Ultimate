@@ -126,8 +126,11 @@ public class ModoReverso implements GameMode {
             desenharCobraInimiga(g, cellSize, cobra);
         }
 
-        desenharIndicadorEstado(g);
     }
+
+    /** Renders enemy count and pursuit timings in the dedicated HUD strip. */
+    @Override
+    public void drawHud(Graphics g, int width, int height) { desenharIndicadorEstado(g); }
 
     @Override
     public void onFoodPlaced(Point food) {

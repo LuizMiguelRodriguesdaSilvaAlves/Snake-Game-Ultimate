@@ -36,13 +36,12 @@ public class TelaConfiguracaoMapa extends JPanel {
 
         preview = new PreviewMapa();
 
-        JPanel controles = new JPanel(new GridLayout(5, 1, 10, 10));
+        JPanel controles = new JPanel(new GridLayout(4, 1, 10, 10));
         controles.setBackground(Color.BLACK);
 
         controles.add(botaoCor("Fundo", c -> fundo = c));
         controles.add(botaoCor("Grade", c -> grade = c));
         controles.add(botaoCor("Comida", c -> comida = c));
-        controles.add(botaoCor("Borda da Cobra", c -> borda = c));
 
         JButton salvar = new JButton("Salvar Tema");
         salvar.addActionListener(e -> salvarTema());
