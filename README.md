@@ -96,6 +96,7 @@ The project uses object-oriented composition and polymorphism:
 - `Snake` owns body movement, growth, shrinking, wraparound movement and teleportation.
 - `multiplayer.LanServer` owns the authoritative TCP match, validates player input and resolves majority votes with host tie-break.
 - `multiplayer.LanClient` handles the line-based LAN protocol; `MultiplayerGamePanel` renders server snapshots without Java object deserialization.
+- Multiplayer transport, protocol and lobby failures use dedicated exception types under `exceptions`.
 - `ScoreManager` stores one record per stable mode identifier.
 - Dedicated mode exceptions inherit from `GameModeException`, allowing precise diagnostics while preserving the shared game-over recovery path.
 

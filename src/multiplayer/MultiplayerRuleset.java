@@ -1,5 +1,7 @@
 package multiplayer;
 
+import exceptions.MultiplayerLobbyException;
+
 /** Multiplayer-safe rulesets implemented for independent player snakes. */
 public enum MultiplayerRuleset {
     CLASSIC("Classic Snake"),
@@ -13,6 +15,6 @@ public enum MultiplayerRuleset {
     /** Resolves a stable wire identifier without accepting arbitrary class names. */
     public static MultiplayerRuleset fromWire(String value) {
         try { return valueOf(value); }
-        catch (RuntimeException exception) { throw new MultiplayerException("Unsupported multiplayer ruleset: " + value); }
+        catch (RuntimeException exception) { throw new MultiplayerLobbyException("Unsupported multiplayer ruleset: " + value); }
     }
 }
