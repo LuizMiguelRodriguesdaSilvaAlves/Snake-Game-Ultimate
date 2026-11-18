@@ -33,6 +33,9 @@ import modosDeJogo.ModoCaos;
 import modosDeJogo.ModoCampoMinado;
 import modosDeJogo.ModoPortal;
 import modosDeJogo.ModoRunGun;
+import multiplayer.MultiplayerException;
+import multiplayer.MultiplayerProfile;
+import multiplayer.MultiplayerRuleset;
 import pontuacao.ScoreManager;
 import sistemaDeMovimentacaoGeral.Direction;
 import sistemaDeMovimentacaoGeral.Snake;
@@ -57,6 +60,7 @@ public final class ModeSystemSmokeTest {
         verifyModeSpecificExceptions();
         verifyGoldenFruitAvoidsWallsAndObstacles();
         verifyPortalAvoidsCompositeObstacles();
+        verifyMultiplayerContracts();
         System.out.println("All Snake Ultimate smoke tests passed.");
     }
 
@@ -374,6 +378,17 @@ public final class ModeSystemSmokeTest {
         @Override public String getName() { return "Test Obstacles"; }
         @Override public void init(Snake snake, ScoreManager score) { }
         @Override public boolean isPositionBlocked(Point position) { return position != null && !freeCells.contains(position); }
+    }
+
+    /** Verifies LAN player-profile sanitization, supported votes and port validation. */
+    private static void verifyMultiplayerContracts() {
+        MultiplayerProfile profile = new MultiplayerProfile("Player|One", 0xFF00FF00, 0xFF008800, 0xFF000000);
+        check("PlayerOne".equals(profile.name()), "LAN player names must be sanitized before entering the protocol.");
+        check(MultiplayerRuleset.fromWire("COMBO") == MultiplayerRuleset.COMBO, "The multiplayer vote catalog must resolve supported rulesets.");
+        checkThrows(MultiplayerException.class, () -> MultiplayerRuleset.fromWire("BOSS_RUSH"),
+                "Single-player Boss Rush must not be accepted as a multiplayer ruleset.");
+        checkThrows(MultiplayerException.class, () -> new multiplayer.LanServer(80),
+                "LAN server ports below 1024 must be rejected.");
     }
 
     /** Throws an assertion with a readable message when a test condition is false. */
