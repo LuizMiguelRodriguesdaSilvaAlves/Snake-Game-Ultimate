@@ -498,6 +498,8 @@ public final class ModoBossRush implements GameMode {
                 || context.isPositionBlocked(next)) return;
         if (context.getSnake().getBody().contains(next)) {
             damagePlayer(context);
+            // Let the next tick's contact handler apply knockback and move the guardian away.
+            if (next.equals(context.getSnake().getHead())) current.position = new Point(next);
             return;
         }
         current.position = new Point(next);
