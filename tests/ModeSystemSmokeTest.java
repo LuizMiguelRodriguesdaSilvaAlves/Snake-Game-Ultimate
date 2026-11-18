@@ -33,6 +33,8 @@ import modosDeJogo.ModoCaos;
 import modosDeJogo.ModoCampoMinado;
 import modosDeJogo.ModoPortal;
 import modosDeJogo.ModoRunGun;
+import modosDeJogo.ModoReverso;
+import modosDeJogo.CompositeGameMode;
 import multiplayer.MultiplayerException;
 import multiplayer.MultiplayerProfile;
 import multiplayer.MultiplayerRuleset;
