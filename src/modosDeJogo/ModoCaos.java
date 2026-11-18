@@ -1,4 +1,7 @@
 package modosDeJogo;
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.Graphics;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -24,6 +27,26 @@ public final class ModoCaos extends CompositeGameMode {
     }
     /** Returns the number of selected modes. */
     public int getSelectedCount() { return selectedCount; }
+
+    /** Draws a compact Chaos summary instead of stacking every child HUD on top of itself. */
+    @Override public void drawHud(Graphics graphics, int width, int height) {
+        graphics.setColor(Color.WHITE);
+        graphics.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 13));
+        long activeCount = modes.stream().filter(this::isModeActive).count();
+        graphics.drawString("CHAOS: " + activeCount + " ACTIVE RULESETS", 12, 18);
+        StringBuilder summary = new StringBuilder();
+        for (GameMode mode : modes) {
+            if (!isModeActive(mode)) continue;
+            if (summary.length() > 0) summary.append("  |  ");
+            summary.append(mode.getName().toUpperCase());
+        }
+        String line = summary.toString();
+        if (line.length() > 88) line = line.substring(0, 85) + "...";
+        graphics.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 11));
+        graphics.drawString(line, 12, 40);
+        graphics.setColor(new Color(170, 210, 255));
+        graphics.drawString(rendersPlayerAsFood() ? "PLAYER IDENTITY: HUNTED FRUIT" : "PLAYER IDENTITY: SNAKE", 12, 60);
+    }
     /** Re-rolls the combination for every new Chaos round. */
     @Override public void init(Snake snake, ScoreManager score) {
         modes.clear(); modes.addAll(selectModes(selectedCount)); super.init(snake, score);

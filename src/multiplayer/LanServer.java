@@ -199,7 +199,7 @@ public final class LanServer implements AutoCloseable {
         } else if(next.x<0||next.x>=COLUMNS||next.y<0||next.y>=ROWS) { player.alive=false; return; }
         if(player.body.size()>1 && player.body.subList(0,player.body.size()-1).contains(next)) { player.alive=false; return; }
         for(PlayerState other:players.values()) {
-            if(other.body.contains(next)) { player.alive=false; return; }
+            if(other!=player && other.body.contains(next)) { player.alive=false; return; }
         }
         player.body.add(0,next);
         if(next.equals(food)) {

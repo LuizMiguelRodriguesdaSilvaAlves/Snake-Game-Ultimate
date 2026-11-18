@@ -6,7 +6,7 @@ An expanded Snake game built with Java and Swing. The project focuses on object-
 
 ## Features
 
-- Java Swing desktop interface with keyboard controls.
+- Java Swing desktop interface with keyboard controls and a dedicated session HUD.
 - Ten standard game modes and five Konami Code-exclusive modes.
 - Chaos can combine up to thirteen compatible standard and exclusive modes; Boss Rush remains a standalone challenge.
 - LAN multiplayer supports up to four players with majority mode voting and host tie-break.

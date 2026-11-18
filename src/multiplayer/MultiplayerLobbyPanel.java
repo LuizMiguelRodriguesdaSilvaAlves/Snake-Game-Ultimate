@@ -26,6 +26,7 @@ public final class MultiplayerLobbyPanel extends JPanel {
         JLabel title=new JLabel("MULTIPLAYER LAN LOBBY",SwingConstants.CENTER);
         title.setForeground(Color.WHITE); title.setFont(new Font(Font.SANS_SERIF,Font.BOLD,24));
         status.setForeground(Color.WHITE); voteSummary.setForeground(new Color(190,210,255));
+        if(host) voteSummary.setText("Share LAN address: "+LanServer.findLocalAddress()+":"+port);
         JPanel center=new JPanel(new GridLayout(0,1,10,10)); center.setBackground(Color.BLACK);
         center.setBorder(BorderFactory.createEmptyBorder(24,40,24,40));
         center.add(new JLabel("Choose the mode you want to play:",SwingConstants.CENTER));
