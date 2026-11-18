@@ -41,7 +41,7 @@ import modosDeJogo.ModoReverso;
 import modosDeJogo.CompositeGameMode;
 import multiplayer.LanClient;
 import multiplayer.LanServer;
-import multiplayer.MultiplayerException;
+import exceptions.MultiplayerException;
 import exceptions.MultiplayerLobbyException;
 import multiplayer.MultiplayerProfile;
 import multiplayer.MultiplayerRuleset;

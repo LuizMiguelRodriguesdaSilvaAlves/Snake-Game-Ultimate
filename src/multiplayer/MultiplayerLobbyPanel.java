@@ -1,5 +1,7 @@
 package multiplayer;
 
+import exceptions.MultiplayerException;
+
 import tela.Main;
 
 import javax.swing.*;

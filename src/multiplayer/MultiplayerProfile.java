@@ -1,5 +1,7 @@
 package multiplayer;
 
+import exceptions.MultiplayerException;
+
 import java.awt.Color;
 import java.util.Objects;
 

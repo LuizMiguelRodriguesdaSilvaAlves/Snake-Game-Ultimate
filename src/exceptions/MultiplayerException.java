@@ -1,4 +1,4 @@
-package multiplayer;
+package exceptions;
 
 /** Reports LAN lobby, transport, protocol and match-state failures. */
 public class MultiplayerException extends RuntimeException {
