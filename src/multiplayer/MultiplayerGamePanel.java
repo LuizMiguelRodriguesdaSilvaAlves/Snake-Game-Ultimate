@@ -60,6 +60,8 @@ public final class MultiplayerGamePanel extends JPanel {
         if(gameOver) {
             g.setColor(Color.YELLOW); g.setFont(new Font(Font.SANS_SERIF,Font.BOLD,28));
             g.drawString("MATCH FINISHED",width/2-115,height/2+58);
+            g.setFont(new Font(Font.SANS_SERIF,Font.PLAIN,14));
+            g.drawString("The last surviving snake wins. Press ESC to leave.",width/2-165,height/2+84);
         }
         g.dispose();
     }

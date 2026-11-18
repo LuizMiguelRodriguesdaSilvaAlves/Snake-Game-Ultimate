@@ -12,6 +12,7 @@ public final class MultiplayerLobbyPanel extends JPanel {
     private final boolean host;
     private final JLabel status=new JLabel("Connecting to LAN host...",SwingConstants.CENTER);
     private final JLabel voteSummary=new JLabel("Waiting for players...",SwingConstants.CENTER);
+    private final JLabel connectionInfo=new JLabel("",SwingConstants.CENTER);
     private final JComboBox<MultiplayerRuleset> voteBox=new JComboBox<>(MultiplayerRuleset.values());
     private final JButton voteButton=new JButton("Submit vote");
     private final JButton startButton=new JButton("Start match");
@@ -26,11 +27,13 @@ public final class MultiplayerLobbyPanel extends JPanel {
         JLabel title=new JLabel("MULTIPLAYER LAN LOBBY",SwingConstants.CENTER);
         title.setForeground(Color.WHITE); title.setFont(new Font(Font.SANS_SERIF,Font.BOLD,24));
         status.setForeground(Color.WHITE); voteSummary.setForeground(new Color(190,210,255));
-        if(host) voteSummary.setText("Share LAN address: "+LanServer.findLocalAddress()+":"+port);
+        connectionInfo.setForeground(new Color(160,220,160));
+        if(host) connectionInfo.setText("Share LAN address: "+LanServer.findLocalAddress()+":"+port);
+        else connectionInfo.setText("Connected to host: "+address+":"+port);
         JPanel center=new JPanel(new GridLayout(0,1,10,10)); center.setBackground(Color.BLACK);
         center.setBorder(BorderFactory.createEmptyBorder(24,40,24,40));
         center.add(new JLabel("Choose the mode you want to play:",SwingConstants.CENTER));
-        center.add(voteBox); center.add(voteButton); center.add(voteSummary); center.add(status);
+        center.add(connectionInfo); center.add(voteBox); center.add(voteButton); center.add(voteSummary); center.add(status);
         voteBox.setFont(new Font(Font.SANS_SERIF,Font.BOLD,16));
         voteButton.addActionListener(event -> submitVote());
         startButton.setEnabled(host); startButton.addActionListener(event -> startMatch());

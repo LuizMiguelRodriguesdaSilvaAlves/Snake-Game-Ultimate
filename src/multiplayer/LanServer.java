@@ -98,6 +98,7 @@ public final class LanServer implements AutoCloseable {
                 socket.setTcpNoDelay(true);
                 Peer peer=new Peer(socket);
                 synchronized(this) {
+                    if(running) { peer.send("ERROR|MATCH_ALREADY_STARTED"); peer.close(); continue; }
                     if(peers.size()>=MAX_PLAYERS) { peer.send("ERROR|ROOM_FULL"); peer.close(); continue; }
                     peers.add(peer);
                 }
@@ -182,7 +183,8 @@ public final class LanServer implements AutoCloseable {
                 if(!running) return;
                 tick++;
                 for(PlayerState player:players.values()) if(player.alive) updatePlayer(player);
-                if(players.values().stream().noneMatch(player->player.alive)) running=false;
+                long alivePlayers=players.values().stream().filter(player->player.alive).count();
+                if(tick>=10 && alivePlayers<=1) running=false;
                 broadcast(snapshotLine());
                 if(!running) broadcast("OVER");
             }
