@@ -16,6 +16,9 @@ import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 import sistemaDeMovimentacaoGeral.Direction;
+import exceptions.MultiplayerConnectionException;
+import exceptions.MultiplayerLobbyException;
+import exceptions.MultiplayerProtocolException;
 
 /**
  * Host-authoritative LAN server. It validates client input, resolves lobby
@@ -79,15 +82,15 @@ public final class LanServer implements AutoCloseable {
     private Thread gameThread;
 
     public LanServer(int port) {
-        if (port < 1024 || port > 65535) throw new MultiplayerException("LAN port must be between 1024 and 65535.");
+        if (port < 1024 || port > 65535) throw new MultiplayerLobbyException("LAN port must be between 1024 and 65535.");
         this.port=port;
     }
     public int getPort() { return port; }
     /** Opens the TCP listener and starts accepting up to three remote players. */
     public synchronized void start() {
-        if (serverSocket!=null) throw new MultiplayerException("The LAN host is already running.");
+        if (serverSocket!=null) throw new MultiplayerLobbyException("The LAN host is already running.");
         try { serverSocket=new ServerSocket(port); }
-        catch(IOException exception) { throw new MultiplayerException("Could not open LAN port "+port+".",exception); }
+        catch(IOException exception) { throw new MultiplayerConnectionException("Could not open LAN port "+port+".",exception); }
         acceptThread=new Thread(this::acceptLoop,"snake-lan-accept");
         acceptThread.setDaemon(true); acceptThread.start();
     }
@@ -155,10 +158,10 @@ public final class LanServer implements AutoCloseable {
     }
     /** Starts the match after majority voting; the host's vote breaks a tie. */
     public synchronized void startMatch() {
-        if(running) throw new MultiplayerException("The LAN match has already started.");
-        if(players.size()<2) throw new MultiplayerException("At least two players must join before starting.");
-        if(!votes.containsKey(1)) throw new MultiplayerException("The host must cast a vote before starting.");
-        if(votes.size()!=players.size()) throw new MultiplayerException("Every connected player must vote before the host can start the match.");
+        if(running) throw new MultiplayerLobbyException("The LAN match has already started.");
+        if(players.size()<2) throw new MultiplayerLobbyException("At least two players must join before starting.");
+        if(!votes.containsKey(1)) throw new MultiplayerLobbyException("The host must cast a vote before starting.");
+        if(votes.size()!=players.size()) throw new MultiplayerLobbyException("Every connected player must vote before the host can start the match.");
         selectedRuleset=resolveVote();
         running=true; tick=0; food=spawnFood();
         gameThread=new Thread(this::gameLoop,"snake-lan-game");
@@ -223,7 +226,7 @@ public final class LanServer implements AutoCloseable {
             Point candidate=new Point(random.nextInt(COLUMNS),random.nextInt(ROWS));
             if(players.values().stream().noneMatch(p->p.body.contains(candidate))) return candidate;
         }
-        throw new MultiplayerException("No free cell remains for multiplayer food.");
+        throw new MultiplayerLobbyException("No free cell remains for multiplayer food.");
     }
     private String snapshotLine() {
         StringBuilder line=new StringBuilder("SNAP|").append(selectedRuleset.name()).append('|')

@@ -42,6 +42,7 @@ import modosDeJogo.CompositeGameMode;
 import multiplayer.LanClient;
 import multiplayer.LanServer;
 import multiplayer.MultiplayerException;
+import exceptions.MultiplayerLobbyException;
 import multiplayer.MultiplayerProfile;
 import multiplayer.MultiplayerRuleset;
 import pontuacao.ScoreManager;
@@ -396,7 +397,7 @@ public final class ModeSystemSmokeTest {
         check(MultiplayerRuleset.fromWire("COMBO") == MultiplayerRuleset.COMBO, "The multiplayer vote catalog must resolve supported rulesets.");
         checkThrows(MultiplayerException.class, () -> MultiplayerRuleset.fromWire("BOSS_RUSH"),
                 "Single-player Boss Rush must not be accepted as a multiplayer ruleset.");
-        checkThrows(MultiplayerException.class, () -> new multiplayer.LanServer(80),
+        checkThrows(MultiplayerLobbyException.class, () -> new multiplayer.LanServer(80),
                 "LAN server ports below 1024 must be rejected.");
     }
 

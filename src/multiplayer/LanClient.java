@@ -9,6 +9,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.concurrent.atomic.AtomicBoolean;
 import sistemaDeMovimentacaoGeral.Direction;
+import exceptions.MultiplayerConnectionException;
+import exceptions.MultiplayerProtocolException;
 
 /** TCP client for LAN lobby voting, directional input and authoritative snapshots. */
 public final class LanClient implements AutoCloseable {
@@ -55,7 +57,7 @@ public final class LanClient implements AutoCloseable {
             reader.start();
         } catch (IOException exception) {
             close();
-            throw new MultiplayerException("Could not connect to " + address + ":" + port
+            throw new MultiplayerConnectionException("Could not connect to " + address + ":" + port
                     + ". Check the host IP and local network.", exception);
         }
     }
@@ -68,14 +70,14 @@ public final class LanClient implements AutoCloseable {
                 String[] fields = line.split("\\|", -1);
                 switch (fields[0]) {
                     case "WELCOME" -> {
-                        if (fields.length != 3) throw new MultiplayerException("Malformed welcome packet.");
+                        if (fields.length != 3) throw new MultiplayerProtocolException("Malformed welcome packet.");
                         playerId = Integer.parseInt(fields[1]);
                         host = Boolean.parseBoolean(fields[2]);
                         listener.onWelcome(playerId, host);
                     }
                     case "LOBBY" -> listener.onLobby(line);
                     case "STARTED" -> {
-                        if (fields.length != 2) throw new MultiplayerException("Malformed match-start packet.");
+                        if (fields.length != 2) throw new MultiplayerProtocolException("Malformed match-start packet.");
                         listener.onStarted(fields[1]);
                     }
                     case "SNAP" -> listener.onSnapshot(line);
@@ -113,7 +115,7 @@ public final class LanClient implements AutoCloseable {
     private synchronized void send(String message) {
         if (closed.get() || output == null) throw new MultiplayerException("The LAN connection is not active.");
         output.println(message);
-        if (output.checkError()) throw new MultiplayerException("Could not send data to the LAN host.");
+        if (output.checkError()) throw new MultiplayerConnectionException("Could not send data to the LAN host.");
     }
 
     @Override public void close() {
