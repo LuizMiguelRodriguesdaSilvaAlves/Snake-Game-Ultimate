@@ -148,7 +148,8 @@ public final class LanServer implements AutoCloseable {
                 }
             }
         } catch(RuntimeException exception) {
-            peer.send("ERROR|INVALID_MESSAGE");
+            String reason = exception.getMessage() == null ? "INVALID_MESSAGE" : exception.getMessage();
+            peer.send("ERROR|" + reason.replace("|", " ").replace("\\n", " "));
         }
     }
     /** Starts the match after majority voting; the host's vote breaks a tie. */

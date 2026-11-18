@@ -45,6 +45,10 @@ public final class ModoRunGun implements GameMode {
     }
     /** This mode replaces collectible fruit with hostile fruit opponents. */
     @Override public boolean usesFood() { return false; }
+    /** Prevents bonus collectibles from spawning on hostile fruit opponents in Chaos. */
+    @Override public boolean isPositionBlocked(Point position) {
+        return position != null && enemies.stream().anyMatch(enemy -> enemy.position.equals(position));
+    }
     /** Fires one player projectile when Space is pressed. */
     @Override public void onKeyPressed(int keyCode) {
         if (keyCode != KeyEvent.VK_SPACE) return;

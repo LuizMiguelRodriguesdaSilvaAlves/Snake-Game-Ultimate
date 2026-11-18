@@ -81,8 +81,10 @@ public final class MultiplayerLobbyPanel extends JPanel {
         String[] fields=state.split("\\|",-1);
         if(fields.length<3) return;
         int count=Integer.parseInt(fields[1]);
-        voteSummary.setText("Players connected: "+count+"/4  |  Votes: "+(fields[2].isBlank()?"none":fields[2].replace(',',' ')));
-        startButton.setEnabled(host && count>=2);
+        int voteCount=fields[2].isBlank()?0:fields[2].split(",").length;
+        voteSummary.setText("Players connected: "+count+"/4  |  Votes: "+voteCount+"/"+count
+                +"  |  "+(fields[2].isBlank()?"No votes yet":fields[2].replace(',',' ')));
+        startButton.setEnabled(host && count>=2 && voteCount==count);
     }
     private void leaveLobby() {
         client.close(); if(server!=null) server.close(); Main.mostrarMenu();
