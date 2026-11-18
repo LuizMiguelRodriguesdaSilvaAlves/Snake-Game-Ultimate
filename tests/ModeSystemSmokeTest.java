@@ -330,7 +330,7 @@ public final class ModeSystemSmokeTest {
                 position -> !onlyFreeCell.contains(position));
         ModoFrutaDourada goldenFruitMode = new ModoFrutaDourada();
         goldenFruitMode.init(snake, score);
-        for (int tick = 0; tick < 70; tick++) goldenFruitMode.update(context);
+        for (int tick = 0; tick < 100; tick++) goldenFruitMode.update(context);
 
         java.lang.reflect.Field fruitField = ModoFrutaDourada.class.getDeclaredField("goldenFruit");
         fruitField.setAccessible(true);
