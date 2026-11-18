@@ -479,23 +479,15 @@ public class ModoReverso implements GameMode {
     }
 
     private void desenharIndicadorEstado(Graphics g) {
-        g.setFont(new Font("Arial", Font.BOLD, 14));
-
+        // Keep all Reverse status lines inside the compact HUD strip above the board.
+        g.setFont(new Font("Arial", Font.BOLD, 13));
         int score = scoreManager.getCurrentScore();
-
         g.setColor(Color.WHITE);
-        g.drawString("Cobras inimigas: " + cobrasInimigas.size() + "/" + LIMITE_COBRAS_INIMIGAS, 10, 80);
-
-        g.drawString("Perseguição: " + duracaoPerseguir + " ticks", 10, 100);
-
-        if (score < SCORE_SEGUNDA_COBRA) {
-            g.drawString("Próxima cobra: " + SCORE_SEGUNDA_COBRA, 10, 120);
-        } else if (score < SCORE_TERCEIRA_COBRA) {
-            g.drawString("Próxima cobra: " + SCORE_TERCEIRA_COBRA, 10, 120);
-        } else if (score < SCORE_QUARTA_COBRA) {
-            g.drawString("Próxima cobra: " + SCORE_QUARTA_COBRA, 10, 120);
-        } else {
-            g.drawString("Limite máximo de cobras atingido", 10, 120);
-        }
+        g.drawString("ENEMIES: " + cobrasInimigas.size() + "/" + LIMITE_COBRAS_INIMIGAS
+                + "  |  CHASE: " + duracaoPerseguir + " TICKS", 12, 18);
+        int nextEnemy = score < SCORE_SEGUNDA_COBRA ? SCORE_SEGUNDA_COBRA
+                : score < SCORE_TERCEIRA_COBRA ? SCORE_TERCEIRA_COBRA
+                : score < SCORE_QUARTA_COBRA ? SCORE_QUARTA_COBRA : -1;
+        g.drawString(nextEnemy < 0 ? "MAXIMUM ENEMY COUNT REACHED" : "NEXT ENEMY AT: " + nextEnemy + " POINTS", 12, 40);
     }
 }

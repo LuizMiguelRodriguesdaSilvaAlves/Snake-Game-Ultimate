@@ -47,6 +47,7 @@ public final class ModeSystemSmokeTest {
         verifyChaosComposition();
         verifyChaosOrderChance();
         verifyReverseSuppressionWhenNormalHasPriority();
+        verifyGoldenFruitSuppressesReverseIdentity();
         verifySnakeBodyAndShrink();
         verifyIndependentScores();
         verifyMinefieldDamage();
@@ -132,6 +133,22 @@ public final class ModeSystemSmokeTest {
         composition.init(snake, score);
         ModoReverso reverse = (ModoReverso) ordered.get(1);
         check(reverse.getCobraInimiga().isEmpty(), "Reverse AI must not initialize when Normal precedes Reverse.");
+    }
+
+    /** Ensures Golden Fruit keeps the player as a snake and disables Reverse AI in Chaos. */
+    private static void verifyGoldenFruitSuppressesReverseIdentity() throws Exception {
+        Snake snake = new Snake(new Point(15, 10), Direction.RIGHT, 4);
+        ScoreManager score = new ScoreManager(Files.createTempDirectory("snake-chaos-golden-reverse-test").resolve("chaos.score"));
+        List<GameMode> ordered = new java.util.ArrayList<>();
+        ordered.add(GameModeRegistry.createStandard("reverse"));
+        ordered.add(GameModeRegistry.createStandard("golden-fruit"));
+        CompositeGameMode composition = new CompositeGameMode("test-golden-reverse", "Test", ordered);
+        composition.init(snake, score);
+        ModoReverso reverse = (ModoReverso) ordered.get(0);
+        check(reverse.getCobraInimiga().isEmpty(), "Golden Fruit must prevent Reverse AI initialization regardless of selection order.");
+        check(composition.usesFood(), "Golden Fruit must preserve regular fruit for a snake player.");
+        check(!composition.rendersPlayerAsFood(), "Golden Fruit must prevent fruit-player rendering.");
+        check(!composition.isModeActive(reverse), "Reverse must be inactive whenever Golden Fruit is selected.");
     }
 
     /** Confirms that an action throws the expected exception type. */

@@ -8,7 +8,7 @@ import pontuacao.ScoreManager;
 import sistemaDeMovimentacaoGeral.Direction;
 import sistemaDeMovimentacaoGeral.Snake;
 
-/** Coordinates child modes and suppresses Reverse AI when Normal has identity priority. */
+/** Coordinates child modes and resolves player-identity conflicts before activating Reverse. */
 public class CompositeGameMode implements GameMode {
     protected final List<GameMode> modes;
     private final String id;
@@ -61,6 +61,8 @@ public class CompositeGameMode implements GameMode {
     }
     /** Normal/Reverse order determines whether the player is a snake or hunted fruit. */
     @Override public boolean usesFood() {
+        // Golden Fruit explicitly requires a normal snake identity, so it suppresses Reverse.
+        if (indexOf("golden-fruit") >= 0) return true;
         int normal = indexOf("normal"), reverse = indexOf("reverse");
         if (normal >= 0 && reverse >= 0) return normal < reverse;
         if (reverse >= 0) return false;
@@ -69,6 +71,8 @@ public class CompositeGameMode implements GameMode {
     }
     /** Renders the player as fruit only when Reverse wins the identity conflict. */
     @Override public boolean rendersPlayerAsFood() {
+        // A Golden Fruit composition always keeps the player represented as a snake.
+        if (indexOf("golden-fruit") >= 0) return false;
         int normal = indexOf("normal"), reverse = indexOf("reverse");
         if (normal >= 0 && reverse >= 0) return reverse < normal;
         if (reverse >= 0) return true;
@@ -94,6 +98,7 @@ public class CompositeGameMode implements GameMode {
     /** Prevents Reverse AI from running when Normal has priority over it. */
     public boolean isModeActive(GameMode mode) {
         if (mode == null || !"reverse".equals(mode.getId())) return true;
+        if (indexOf("golden-fruit") >= 0) return false;
         int normalIndex = indexOf("normal"), reverseIndex = indexOf("reverse");
         return normalIndex < 0 || reverseIndex < normalIndex;
     }

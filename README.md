@@ -53,7 +53,7 @@ When Golden Fruit is active, its bonus fruit can only appear in a free interior 
 
 ### Chaos compatibility rules
 
-Chaos can select the ten standard modes and three compatible exclusive modes: Run & Gun, Time Attack and Glitch. It never selects Boss Rush or another Chaos instance. If Normal is ordered before Reverse, Reverse is suppressed completely (including its AI updates and rendering), so the player remains a snake and is not hunted by Reverse enemies. If Reverse is ordered first, the player becomes the hunted fruit and Reverse is active. Run & Gun can coexist with Reverse; its hostile fruit continues aiming at the player target while the Reverse snakes pursue the same target.
+Chaos can select the ten standard modes and three compatible exclusive modes: Run & Gun, Time Attack and Glitch. It never selects Boss Rush or another Chaos instance. If Normal is ordered before Reverse, Reverse is suppressed completely (including its AI updates and rendering), so the player remains a snake and is not hunted by Reverse enemies. Golden Fruit has an explicit snake-identity rule: whenever Golden Fruit is selected, Reverse is suppressed regardless of selection order, regular food remains available, and the player is never rendered as the hunted fruit. If Reverse is selected without Golden Fruit or Normal taking precedence, the player becomes the hunted fruit and Reverse is active. Run & Gun can coexist with Reverse; its hostile fruit continues aiming at the player target while the Reverse snakes pursue the same target.
 
 ### Run & Gun rules
 

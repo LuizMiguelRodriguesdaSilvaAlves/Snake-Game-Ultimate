@@ -88,6 +88,7 @@ public class GamePanel extends JPanel implements ActionListener {
         boardCanvas.setBackground(Color.BLACK);
         boardCanvas.setPreferredSize(new Dimension(width, height));
         boardCanvas.setFocusable(false);
+        boardCanvas.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0));
         add(header, java.awt.BorderLayout.NORTH);
         add(boardCanvas, java.awt.BorderLayout.CENTER);
         setupKeyListener();
