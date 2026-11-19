@@ -164,7 +164,7 @@ The current score can increase or decrease, but never below zero. The high score
 - `TelaPersonalizacaoCobra`: color customization and live snake preview.
 - `TelaSelecaoTema`: visual theme selection.
 - `TelaConfiguracaoMapa`: map appearance configuration and preview.
-- `TelaPreJogo`: legacy screen retained for compatibility; current navigation uses the main menu and mode selectors.
+
 
 ## 8. Configuration, appearance and support packages
 
