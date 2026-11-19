@@ -16,17 +16,24 @@ public final class GameModeContext {
     private final int rows;
     private final int cellSize;
     private final Predicate<Point> blockedPosition;
+    private final boolean playerAsFood;
     private Point food;
     private boolean endGameRequested;
 
     /** Creates a context snapshot without additional mode-specific obstacles. */
     public GameModeContext(Snake snake, ScoreManager score, Point food, int columns, int rows, int cellSize) {
-        this(snake, score, food, columns, rows, cellSize, position -> false);
+        this(snake, score, food, columns, rows, cellSize, position -> false, false);
     }
 
     /** Creates a context snapshot with a query for the combined obstacle map. */
     public GameModeContext(Snake snake, ScoreManager score, Point food, int columns, int rows,
             int cellSize, Predicate<Point> blockedPosition) {
+        this(snake, score, food, columns, rows, cellSize, blockedPosition, false);
+    }
+
+    /** Creates a context snapshot with obstacle queries and the current player identity. */
+    public GameModeContext(Snake snake, ScoreManager score, Point food, int columns, int rows,
+            int cellSize, Predicate<Point> blockedPosition, boolean playerAsFood) {
         this.snake = snake;
         this.score = score;
         this.food = food == null ? null : new Point(food);
@@ -34,6 +41,7 @@ public final class GameModeContext {
         this.rows = rows;
         this.cellSize = cellSize;
         this.blockedPosition = blockedPosition == null ? position -> false : blockedPosition;
+        this.playerAsFood = playerAsFood;
     }
     /** Returns the player snake. */
     public Snake getSnake() { return snake; }
@@ -49,6 +57,8 @@ public final class GameModeContext {
     public int getRows() { return rows; }
     /** Returns the rendered cell size in pixels. */
     public int getCellSize() { return cellSize; }
+    /** Returns whether the player is currently represented as the hunted fruit. */
+    public boolean isPlayerAsFood() { return playerAsFood; }
     /** Returns whether a cell is occupied by an obstacle in any selected mode. */
     public boolean isPositionBlocked(Point position) {
         return position != null && blockedPosition.test(new Point(position));

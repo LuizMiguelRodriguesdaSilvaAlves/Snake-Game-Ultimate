@@ -21,7 +21,7 @@ An expanded Snake game built with Java and Swing. The project focuses on object-
 | Mode | Description |
 |---|---|
 | Normal | Classic Snake rules. Collect fruit, grow and avoid collisions. |
-| Minefield | Mines appear during the round. Their 4x4 blast can end the game or damage the snake. |
+| Minefield | Mines appear during the round. In snake identity, one mine appears per regular fruit placement; in hunted-fruit identity, one to five mines appear every ten points. Mine placement avoids walls and selected obstacles, and a triggered mine is fatal to the hunted-fruit player. |
 | Portal | Collecting fruit relocates the complete snake to a safe position. |
 | Reverse | The player becomes a hunted fruit while AI-controlled snakes pursue them. |
 | Progressive Speed | The game gets faster as the score increases. |
@@ -47,7 +47,7 @@ Enter the following sequence while the main menu is focused to open the secret s
 
 ### Chaos rules
 
-When Chaos is selected, the player chooses an intensity from 0 to 10. Zero activates the base Normal experience; values from 1 to 10 randomly select that many distinct standard modes. If both Normal and Reverse are selected, their execution order is randomized independently with a 50/50 chance. The first one in the composition order determines whether the round uses regular food and whether the player is drawn as a snake or as the hunted fruit.
+When Chaos is selected, the player chooses an intensity from 0 to 10. Zero activates the base Normal experience; values from 1 to 10 randomly select that many distinct standard modes. If both Normal and Reverse are selected, their execution order is randomized independently with a 50/50 chance. The first one in the composition order determines whether the round uses regular food and whether the player is drawn as a snake or as the hunted fruit. If Minefield is selected while Reverse establishes hunted-fruit identity, Minefield spawns one to five random mines at each ten-point milestone; touching one ends the round with MinaExplodiuException.
 
 When Golden Fruit is active, its bonus fruit can only appear in a free interior cell: it never spawns on the outer board walls, on the snake, on regular food, or inside an obstacle contributed by another selected mode. When Portal and Obstacle Maze are both active, Portal checks the destination of every segment of the translated snake against the combined obstacle map. It only teleports the snake to a fully free interior area, keeping the whole body clear of walls, obstacles and the replacement fruit.
 
@@ -148,7 +148,7 @@ javac -encoding UTF-8 -cp out -d out tests/ModeSystemSmokeTest.java
 java -ea -Djava.awt.headless=true -cp out ModeSystemSmokeTest
 ```
 
-The tests verify the mode catalog sizes, Chaos composition and 50/50 precedence, strict Chaos intensity validation, snake body continuity and shrinking, independent score files, Minefield blast damage, Run & Gun projectile behavior, Boss Rush energy, shooting, boss defeat, encounter progression and damage protection, Golden Fruit wall/obstacle avoidance, Portal teleportation around combined-mode obstacles, and the dedicated exception contract for all eleven new modes.
+The tests verify the mode catalog sizes, Chaos composition and 50/50 precedence, strict Chaos intensity validation, snake body continuity and shrinking, independent score files, Minefield blast damage, Run & Gun projectile behavior, Boss Rush energy, shooting, boss defeat, encounter progression and damage protection, Golden Fruit and Minefield wall/obstacle avoidance, fruit-identity Minefield score milestones and fatal explosion handling, Portal teleportation around combined-mode obstacles, and the dedicated exception contract for all eleven new modes.
 
 ## Project status
 

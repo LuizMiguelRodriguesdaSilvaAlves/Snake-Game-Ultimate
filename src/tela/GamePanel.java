@@ -162,7 +162,8 @@ public class GamePanel extends JPanel implements ActionListener {
 
     /** Creates an isolated update context for the active mode. */
     private GameModeContext createContext() {
-        return new GameModeContext(snake, score, food, columns, rows, cellSize, gameMode::isPositionBlocked);
+        return new GameModeContext(snake, score, food, columns, rows, cellSize,
+                gameMode::isPositionBlocked, gameMode.rendersPlayerAsFood());
     }
 
     /** Places regular food in a cell not occupied by the snake or mode obstacles. */

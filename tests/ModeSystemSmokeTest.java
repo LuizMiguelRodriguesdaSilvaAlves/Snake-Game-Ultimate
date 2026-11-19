@@ -21,6 +21,7 @@ import exceptions.ObstacleModeException;
 import exceptions.MirroredControlsException;
 import exceptions.SpeedModeException;
 import exceptions.NoWallsException;
+import exceptions.MinaExplodiuException;
 import modosDeJogo.ModoBossRush;
 import modosDeJogo.ModoCombo;
 import modosDeJogo.ModoContrarrelogio;
@@ -63,6 +64,8 @@ public final class ModeSystemSmokeTest {
         verifySnakeBodyAndShrink();
         verifyIndependentScores();
         verifyMinefieldDamage();
+        verifyMinefieldFruitIdentityMilestonesRespectMaze();
+        verifyMinefieldFruitIdentityExplosionIsFatal();
         verifyRunGunLifecycle();
         verifyBossRushCombatAndProgression();
         verifyRunGunProjectileCancellation();
@@ -216,6 +219,81 @@ public final class ModeSystemSmokeTest {
         applyBlast.invoke(minefield, snake, new Point(7, 10));
         check(snake.getBody().size() == 2, "Minefield blast must remove the damaged number of body segments.");
         check(score.getCurrentScore() == 16, "Minefield blast must subtract one point per damaged segment.");
+    }
+
+
+    /** Verifies random Minefield waves every ten hunted-fruit points and obstacle-safe placement. */
+    private static void verifyMinefieldFruitIdentityMilestonesRespectMaze() throws Exception {
+        Snake snake = new Snake(new Point(15, 10), Direction.RIGHT, 4);
+        ScoreManager score = new ScoreManager(Files.createTempDirectory("snake-minefield-fruit-score-test").resolve("minefield.score"));
+        ModoCampoMinado minefield = new ModoCampoMinado();
+        ModoReverso reverse = new ModoReverso();
+        ModoObstaculos maze = new ModoObstaculos();
+        CompositeGameMode chaos = new CompositeGameMode("minefield-fruit-test", "Minefield Fruit Test",
+                List.of(minefield, reverse, maze));
+        chaos.init(snake, score);
+        check(chaos.rendersPlayerAsFood(), "Reverse must establish fruit identity in this Chaos composition.");
+
+        GameModeContext context = new GameModeContext(snake, score, null, 30, 20, 20,
+                chaos::isPositionBlocked, chaos.rendersPlayerAsFood());
+        score.addPoints(10);
+        chaos.update(context);
+        int firstWave = minefield.getMineCount();
+        check(firstWave >= 1 && firstWave <= 5, "The first ten-point milestone must create one to five random mines.");
+        verifyMinesAvoidWallsObstaclesAndSnake(minefield, maze, snake, 30, 20);
+
+        chaos.update(context);
+        check(minefield.getMineCount() == firstWave, "A single score milestone must not create duplicate mine waves.");
+
+        score.addPoints(10);
+        chaos.update(context);
+        check(minefield.getMineCount() >= firstWave + 1 && minefield.getMineCount() <= firstWave + 5,
+                "The next ten-point milestone must create another wave of one to five mines.");
+        verifyMinesAvoidWallsObstaclesAndSnake(minefield, maze, snake, 30, 20);
+    }
+
+    /** Verifies that any mine triggered by a fruit-identity player ends the round by exception. */
+    private static void verifyMinefieldFruitIdentityExplosionIsFatal() throws Exception {
+        Snake snake = new Snake(new Point(15, 10), Direction.RIGHT, 4);
+        ScoreManager score = new ScoreManager(Files.createTempDirectory("snake-minefield-fruit-explosion-test").resolve("minefield.score"));
+        ModoCampoMinado minefield = new ModoCampoMinado();
+        ModoReverso reverse = new ModoReverso();
+        CompositeGameMode chaos = new CompositeGameMode("minefield-fruit-explosion-test", "Minefield Fruit Explosion Test",
+                List.of(minefield, reverse));
+        chaos.init(snake, score);
+        check(chaos.rendersPlayerAsFood(), "The explosion test must use fruit identity.");
+
+        java.lang.reflect.Field minesField = ModoCampoMinado.class.getDeclaredField("minas");
+        minesField.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        Set<Point> mines = (Set<Point>) minesField.get(minefield);
+        mines.add(new Point(snake.getHead()));
+
+        GameModeContext context = new GameModeContext(snake, score, null, 30, 20, 20,
+                chaos::isPositionBlocked, chaos.rendersPlayerAsFood());
+        chaos.update(context); // Trigger the warning by stepping on the mine.
+        boolean exploded = false;
+        try {
+            for (int tick = 0; tick < 6; tick++) chaos.update(context);
+        } catch (MinaExplodiuException expected) {
+            exploded = true;
+        }
+        check(exploded, "A triggered mine must throw MinaExplodiuException for a hunted-fruit player.");
+    }
+
+    /** Confirms every generated mine avoids the outer wall, Maze obstacles and snake body. */
+    private static void verifyMinesAvoidWallsObstaclesAndSnake(
+            ModoCampoMinado minefield, ModoObstaculos maze, Snake snake, int columns, int rows) throws Exception {
+        java.lang.reflect.Field minesField = ModoCampoMinado.class.getDeclaredField("minas");
+        minesField.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        Set<Point> mines = (Set<Point>) minesField.get(minefield);
+        for (Point mine : mines) {
+            check(mine.x > 0 && mine.x < columns - 1 && mine.y > 0 && mine.y < rows - 1,
+                    "Mines must never spawn on the outer wall.");
+            check(!maze.isPositionBlocked(mine), "Mines must never spawn inside an Obstacle Maze block.");
+            check(!snake.getBody().contains(mine), "Mines must never spawn inside the snake.");
+        }
     }
 
     /** Confirms that Run & Gun can initialize, receive fire input and advance safely. */
