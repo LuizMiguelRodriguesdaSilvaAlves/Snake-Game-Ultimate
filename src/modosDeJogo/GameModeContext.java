@@ -2,6 +2,7 @@ package modosDeJogo;
 
 import java.awt.Point;
 import java.util.function.Predicate;
+import java.util.function.Consumer;
 import pontuacao.ScoreManager;
 import sistemaDeMovimentacaoGeral.Snake;
 
@@ -17,23 +18,34 @@ public final class GameModeContext {
     private final int cellSize;
     private final Predicate<Point> blockedPosition;
     private final boolean playerAsFood;
+    private final Consumer<GameModeContext> enemyDefeatedHandler;
     private Point food;
     private boolean endGameRequested;
 
     /** Creates a context snapshot without additional mode-specific obstacles. */
     public GameModeContext(Snake snake, ScoreManager score, Point food, int columns, int rows, int cellSize) {
-        this(snake, score, food, columns, rows, cellSize, position -> false, false);
+        this(snake, score, food, columns, rows, cellSize, position -> false, false, null);
     }
 
     /** Creates a context snapshot with a query for the combined obstacle map. */
     public GameModeContext(Snake snake, ScoreManager score, Point food, int columns, int rows,
             int cellSize, Predicate<Point> blockedPosition) {
-        this(snake, score, food, columns, rows, cellSize, blockedPosition, false);
+        this(snake, score, food, columns, rows, cellSize, blockedPosition, false, null);
     }
 
     /** Creates a context snapshot with obstacle queries and the current player identity. */
     public GameModeContext(Snake snake, ScoreManager score, Point food, int columns, int rows,
             int cellSize, Predicate<Point> blockedPosition, boolean playerAsFood) {
+        this(snake, score, food, columns, rows, cellSize, blockedPosition, playerAsFood, null);
+    }
+
+    /**
+     * Creates a full context snapshot, including the callback used to notify the active
+     * composition when a mode-specific enemy or target is defeated.
+     */
+    public GameModeContext(Snake snake, ScoreManager score, Point food, int columns, int rows,
+            int cellSize, Predicate<Point> blockedPosition, boolean playerAsFood,
+            Consumer<GameModeContext> enemyDefeatedHandler) {
         this.snake = snake;
         this.score = score;
         this.food = food == null ? null : new Point(food);
@@ -42,6 +54,7 @@ public final class GameModeContext {
         this.cellSize = cellSize;
         this.blockedPosition = blockedPosition == null ? position -> false : blockedPosition;
         this.playerAsFood = playerAsFood;
+        this.enemyDefeatedHandler = enemyDefeatedHandler;
     }
     /** Returns the player snake. */
     public Snake getSnake() { return snake; }
@@ -62,6 +75,11 @@ public final class GameModeContext {
     /** Returns whether a cell is occupied by an obstacle in any selected mode. */
     public boolean isPositionBlocked(Point position) {
         return position != null && blockedPosition.test(new Point(position));
+    }
+
+    /** Notifies the active mode composition that a mode-specific target was defeated. */
+    public void notifyEnemyDefeated() {
+        if (enemyDefeatedHandler != null) enemyDefeatedHandler.accept(this);
     }
 
     /** Requests a game-over transition after the current update finishes. */

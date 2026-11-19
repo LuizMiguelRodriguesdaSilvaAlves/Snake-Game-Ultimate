@@ -49,6 +49,10 @@ public class CompositeGameMode implements GameMode {
     @Override public void onFoodCollected(GameModeContext context) {
         for (GameMode mode : modes) if (isModeActive(mode)) mode.onFoodCollected(context);
     }
+    /** Broadcasts target-defeat events to active children. */
+    @Override public void onEnemyDefeated(GameModeContext context) {
+        for (GameMode mode : modes) if (isModeActive(mode)) mode.onEnemyDefeated(context);
+    }
     /** Broadcasts keyboard input to active children. */
     @Override public void onKeyPressed(int keyCode) {
         for (GameMode mode : modes) if (isModeActive(mode)) mode.onKeyPressed(keyCode);

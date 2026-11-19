@@ -47,6 +47,9 @@ public interface GameMode {
     /** Notifies the mode after the player collects regular food. */
     default void onFoodCollected(GameModeContext context) { }
 
+    /** Notifies active modes after a mode-specific enemy or target is defeated. */
+    default void onEnemyDefeated(GameModeContext context) { }
+
     /** Receives keyboard keys that are not handled by the common movement layer. */
     default void onKeyPressed(int keyCode) { }
 

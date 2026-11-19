@@ -33,7 +33,7 @@ The main runtime path is:
 This interface is the extension point for every game mode. The required methods provide a stable identifier, a display name and an initialization entry point. Default hooks cover:
 
 - Per-tick updates and mode-specific drawing.
-- Regular-food placement and collection events.
+- Regular-food placement and collection events, plus notifications when a mode-specific target is defeated.
 - Keyboard input and direction transformation.
 - Whether regular food is enabled or the player is drawn as a hunted fruit.
 - Edge wraparound and mode-specific blocked cells.
@@ -47,7 +47,7 @@ A new mode should override only the capabilities it needs. It should not depend 
 
 ### `modosDeJogo.GameModeContext`
 
-This state-transfer object is passed to update and food-placement hooks. It exposes the player snake, the active score manager, a defensive copy of the regular-food position, board dimensions and cell size. It also provides `isPositionBlocked(Point)`, backed by the combined obstacle map of the active mode (including every child of a composite such as Chaos). A mode can request game over without coupling itself to the UI layer.
+This state-transfer object is passed to update and gameplay-event hooks. It exposes the player snake, the active score manager, a defensive copy of the regular-food position, board dimensions and cell size. It also provides `isPositionBlocked(Point)`, backed by the combined obstacle map of the active mode (including every child of a composite such as Chaos). A mode-specific target can notify the active composition when defeated, allowing other selected modes to react without depending on Swing. A mode can request game over without coupling itself to the UI layer.
 
 ### `modosDeJogo.GameModeRegistry`
 
@@ -55,7 +55,7 @@ The central factory returns fresh instances of the ten standard modes and five e
 
 ### `modosDeJogo.CompositeGameMode`
 
-This class composes several mode objects into one round. It delegates initialization, updates, drawing, food callbacks and keyboard input to its children in list order. The context-based food-placement callback is forwarded unchanged, so each child can query the combined obstacle map. It combines capabilities such as edge wrapping, blocked cells, timer delay and game-over state.
+This class composes several mode objects into one round. It delegates initialization, updates, drawing, food callbacks, target-defeat notifications and keyboard input to its children in list order. The context-based callbacks are forwarded unchanged, so each child can query the combined obstacle map and current player identity. It combines capabilities such as edge wrapping, blocked cells, timer delay and game-over state.
 
 For the Normal/Reverse conflict, the first of those two modes in the composition order determines whether regular food is enabled and whether the player is rendered as a snake or as the hunted fruit.
 
@@ -109,7 +109,7 @@ Chaos randomly selects zero to thirteen distinct compatible modes: the ten stand
 - `FruitEnemy` stores an opponent's grid position and its movement/fire cooldowns.
 - `Projectile` stores its grid position, movement vector, ownership and previous position.
 
-The mode's update method lets fruit opponents choose evasive movement and fire toward the player. Projectiles move on alternating game ticks. Any two projectiles are removed when they occupy the same cell or cross paths during a movement step. Player projectiles destroy fruit opponents and award points; enemy projectiles that hit the snake request game over.
+The mode's update method lets fruit opponents choose evasive movement and fire toward the player. Projectiles move on alternating game ticks. Any two projectiles are removed when they occupy the same cell or cross paths during a movement step. Player projectiles destroy fruit opponents and award ten points. Each successful hit then emits a target-defeated event through `GameModeContext`. If Minefield is also active in Chaos, it responds with a random wave of one to five mines. When Reverse establishes hunted-fruit identity, Minefield leaves the event to its existing ten-point milestone logic, preventing duplicate waves. Enemy projectiles that hit the snake request game over.
 
 The Space key fires one player projectile in the snake's current direction. Movement remains controlled by the normal arrow-key or WASD input layer.
 
@@ -182,7 +182,7 @@ The current score can increase or decrease, but never below zero. The high score
 
 When the player is a snake, Minefield preserves the one-mine-per-regular-food-placement rule and the original 4x4 blast behavior. A head hit throws `MinaExplodiuException`; otherwise, every non-head segment inside the blast removes one tail segment and one score point.
 
-When the active composition renders the player as hunted fruit (Reverse identity), Minefield instead creates a random wave of one to five mines at every ten-point score milestone. Touching a mine starts the warning animation, but the eventual explosion is always fatal for this identity—even if the player moves away during the warning—and throws `MinaExplodiuException`. Mine generation uses the full `GameModeContext`: it excludes the outer board ring, the active snake body, regular food and every blocked cell contributed by the composite, including Obstacle Maze. The next milestone is tracked so one score threshold cannot spawn duplicate waves.
+When the active composition renders the player as hunted fruit (Reverse identity), Minefield instead creates a random wave of one to five mines at every ten-point score milestone. When the player remains a snake and Run & Gun is active, each defeated hostile fruit emits a target-defeated event and Minefield creates one random wave of one to five mines. If both Run & Gun and Reverse are active, the event callback defers to the ten-point milestone path so a single hostile-fruit defeat does not create duplicate waves. Touching a mine starts the warning animation, but the eventual explosion is always fatal for this identity—even if the player moves away during the warning—and throws `MinaExplodiuException`. Mine generation uses the full `GameModeContext`: it excludes the outer board ring, the active snake body, regular food and every blocked cell contributed by the composite, including Obstacle Maze. The next milestone is tracked so one score threshold cannot spawn duplicate waves.
 
 ## 10. Game-mode exception hierarchy
 
@@ -217,4 +217,4 @@ These exceptions represent invalid lifecycle inputs, malformed update contexts, 
 
 ## 12. Build and verification
 
-The application targets Java 17 or newer and uses only the Java standard library. Run `scripts/test.sh` from the project root to compile the source and execute the dependency-free smoke tests. The tests cover the catalog size, unique mode IDs, Chaos boundaries and Normal/Reverse ordering probability, snake continuity/shrinking, independent score files, Minefield snake damage, fruit-identity ten-point mine waves, wall/Obstacle Maze-safe mine placement and fatal MinaExplodiuException handling, Run & Gun lifecycle and projectile cancellation, Boss Rush shot charging, projectile damage, guardian defeat/reward, next-guardian progression and temporary damage protection, Golden Fruit wall/obstacle avoidance, Portal relocation with a composite obstacle map, and invalid-input handling for each of the eleven mode-specific exceptions.
+The application targets Java 17 or newer and uses only the Java standard library. Run `scripts/test.sh` from the project root to compile the source and execute the dependency-free smoke tests. The tests cover the catalog size, unique mode IDs, Chaos boundaries and Normal/Reverse ordering probability, snake continuity/shrinking, independent score files, Minefield snake damage, fruit-identity ten-point mine waves, wall/Obstacle Maze-safe mine placement and fatal MinaExplodiuException handling, Run & Gun hostile-fruit defeats triggering Minefield waves, projectile cancellation, Boss Rush shot charging, projectile damage, guardian defeat/reward, next-guardian progression and temporary damage protection, Golden Fruit wall/obstacle avoidance, Portal relocation with a composite obstacle map, and invalid-input handling for each of the eleven mode-specific exceptions.

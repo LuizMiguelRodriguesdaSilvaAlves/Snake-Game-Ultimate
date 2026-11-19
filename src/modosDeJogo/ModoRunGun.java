@@ -105,7 +105,9 @@ public final class ModoRunGun implements GameMode {
                 for (FruitEnemy enemy : enemies) if (enemy.position.x==bullet.x && enemy.position.y==bullet.y) {
                     enemy.position = randomFreeCell(context.getColumns(), context.getRows());
                     enemy.fireCooldown = 18 + random.nextInt(20);
-                    context.getScore().addPoints(10); removed[i]=true; break;
+                    context.getScore().addPoints(10);
+                    context.notifyEnemyDefeated();
+                    removed[i]=true; break;
                 }
             } else if (context.getSnake().getBody().contains(new Point(bullet.x, bullet.y))) {
                 context.requestGameOver(); removed[i]=true;

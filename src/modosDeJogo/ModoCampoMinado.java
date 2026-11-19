@@ -15,6 +15,7 @@ import java.util.Set;
  * Minefield mode supports two player identities:
  * - A snake player receives one mine whenever regular food is replaced.
  * - A hunted-fruit player receives one to five random mines at every ten points.
+ * - A snake paired with Run & Gun receives a random mine wave after each hostile-fruit defeat.
  * - Mines never occupy the outer wall, the snake, active food or a combined-mode obstacle.
  * - Touching a mine starts a warning; fruit identity makes the explosion fatal even after escape.
  * - Snake identity keeps the original 4x4 blast damage behavior.
@@ -165,6 +166,25 @@ public class ModoCampoMinado implements GameMode {
         playerAsFood = context.isPlayerAsFood();
         if (playerAsFood) return;
         addRandomMinesAvoiding(context.getFood(), MINES_PER_FOOD, context);
+    }
+
+    /**
+     * Adds a mine wave after Run & Gun defeats a hostile fruit.
+     * Reverse identity is already handled by the ten-point score milestone in update().
+     */
+    @Override public void onEnemyDefeated(GameModeContext context) {
+        if (context == null || context.getSnake() == null || context.getScore() == null) {
+            throw new CampoMinadoException("Minefield requires a valid target-defeat context.");
+        }
+        cols = context.getColumns();
+        rows = context.getRows();
+        snake = context.getSnake();
+        scoreManager = context.getScore();
+        playerAsFood = context.isPlayerAsFood();
+        if (playerAsFood) return;
+
+        int randomMineCount = 1 + rnd.nextInt(MAX_FRUIT_IDENTITY_MINES);
+        addRandomMinesAvoiding(context.getFood(), randomMineCount, context);
     }
 
     /** Exposes the current mine count for deterministic diagnostics and smoke tests. */

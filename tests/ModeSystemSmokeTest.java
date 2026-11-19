@@ -67,6 +67,7 @@ public final class ModeSystemSmokeTest {
         verifyMinefieldFruitIdentityMilestonesRespectMaze();
         verifyMinefieldFruitIdentityExplosionIsFatal();
         verifyRunGunLifecycle();
+        verifyRunGunMinefieldSpawnAfterFruitDefeat();
         verifyBossRushCombatAndProgression();
         verifyRunGunProjectileCancellation();
         verifyModeSpecificExceptions();
@@ -309,6 +310,70 @@ public final class ModeSystemSmokeTest {
         check(score.getCurrentScore() >= 0, "Run & Gun score must remain non-negative.");
     }
 
+
+    /** Confirms a player projectile defeat in Run & Gun immediately creates a Minefield wave in Chaos. */
+    @SuppressWarnings("unchecked")
+    private static void verifyRunGunMinefieldSpawnAfterFruitDefeat() throws Exception {
+        Snake snake = new Snake(new Point(15, 10), Direction.RIGHT, 4);
+        ScoreManager score = new ScoreManager(Files.createTempDirectory("snake-run-gun-minefield-test").resolve("run-gun-minefield.score"));
+        ModoCampoMinado minefield = new ModoCampoMinado();
+        ModoRunGun runGun = new ModoRunGun();
+        CompositeGameMode chaos = new CompositeGameMode("run-gun-minefield-test", "Run & Gun Minefield Test",
+                List.of(minefield, runGun));
+        chaos.init(snake, score);
+
+        java.lang.reflect.Field enemiesField = ModoRunGun.class.getDeclaredField("enemies");
+        enemiesField.setAccessible(true);
+        List<Object> enemies = (List<Object>) enemiesField.get(runGun);
+        check(!enemies.isEmpty(), "Run & Gun must initialize hostile fruit targets.");
+        for (int index = 0; index < enemies.size(); index++) {
+            Object enemy = enemies.get(index);
+            setPrivateField(enemy, "position", index == 0
+                    ? new Point(18, 10) : new Point(25, 3 + index * 4));
+            setPrivateIntField(enemy, "moveCooldown", 1_000);
+            setPrivateIntField(enemy, "fireCooldown", 1_000);
+        }
+
+        java.lang.reflect.Field bulletsField = ModoRunGun.class.getDeclaredField("bullets");
+        bulletsField.setAccessible(true);
+        List<Object> bullets = (List<Object>) bulletsField.get(runGun);
+        Class<?> projectileType = Class.forName("modosDeJogo.ModoRunGun$Projectile");
+        java.lang.reflect.Constructor<?> constructor = projectileType.getDeclaredConstructor(
+                int.class, int.class, int.class, int.class, boolean.class);
+        constructor.setAccessible(true);
+        bullets.add(constructor.newInstance(17, 10, 1, 0, true));
+
+        GameModeContext context = new GameModeContext(snake, score, null, 30, 20, 20,
+                chaos::isPositionBlocked, chaos.rendersPlayerAsFood(), chaos::onEnemyDefeated);
+        chaos.update(context);
+        check(score.getCurrentScore() == 0 && minefield.getMineCount() == 0,
+                "Minefield must not spawn a Run & Gun wave before the projectile hits a target.");
+
+        chaos.update(context);
+        check(score.getCurrentScore() == 10, "Destroying a hostile fruit must award the standard ten points.");
+        int spawnedMines = minefield.getMineCount();
+        check(spawnedMines >= 1 && spawnedMines <= 5,
+                "Each Run & Gun hostile-fruit defeat must create one random wave of one to five mines.");
+        for (Point mine : getMinePositions(minefield)) {
+            check(mine.x > 0 && mine.x < 29 && mine.y > 0 && mine.y < 19,
+                    "Run & Gun Minefield waves must stay away from the outer board wall.");
+            check(!snake.getBody().contains(mine),
+                    "Run & Gun Minefield waves must not spawn inside the snake.");
+            check(!chaos.isPositionBlocked(mine),
+                    "Run & Gun Minefield waves must avoid the remaining hostile fruit targets.");
+        }
+    }
+
+    /** Returns a defensive copy of Minefield's active coordinates for smoke-test assertions. */
+    @SuppressWarnings("unchecked")
+    private static Set<Point> getMinePositions(ModoCampoMinado minefield) throws Exception {
+        java.lang.reflect.Field minesField = ModoCampoMinado.class.getDeclaredField("minas");
+        minesField.setAccessible(true);
+        Set<Point> mines = (Set<Point>) minesField.get(minefield);
+        Set<Point> copy = new HashSet<>();
+        for (Point mine : mines) copy.add(new Point(mine));
+        return copy;
+    }
 
     /** Exercises Boss Rush resources, projectile damage, guardian progression and damage protection. */
     private static void verifyBossRushCombatAndProgression() throws Exception {
