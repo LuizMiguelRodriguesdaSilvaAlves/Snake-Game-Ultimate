@@ -19,6 +19,7 @@ public final class LanClient implements AutoCloseable {
     public interface Listener {
         default void onWelcome(int playerId, boolean host) { }
         default void onLobby(String lobbyState) { }
+        default void onCountdown(int value, int backgroundRgb, int gridRgb, int foodRgb) { }
         default void onStarted(String ruleset) { }
         default void onSnapshot(String snapshot) { }
         default void onGameOver() { }
@@ -78,6 +79,11 @@ public final class LanClient implements AutoCloseable {
                         listener.onWelcome(playerId, host);
                     }
                     case "LOBBY" -> listener.onLobby(line);
+                    case "COUNTDOWN" -> {
+                        if (fields.length != 5) throw new MultiplayerProtocolException("Malformed countdown packet.");
+                        listener.onCountdown(Integer.parseInt(fields[1]), Integer.parseInt(fields[2]),
+                                Integer.parseInt(fields[3]), Integer.parseInt(fields[4]));
+                    }
                     case "STARTED" -> {
                         if (fields.length != 2) throw new MultiplayerProtocolException("Malformed match-start packet.");
                         listener.onStarted(fields[1]);
@@ -111,8 +117,11 @@ public final class LanClient implements AutoCloseable {
         send("DIR|" + direction.name());
     }
 
-    /** Requests match start; the server accepts this command from the host only. */
+    /** Requests the first match start; the server accepts this command from the host only. */
     public void startMatch() { send("START"); }
+
+    /** Requests a new round after game over; only the host connection is authorized. */
+    public void restartMatch() { send("RESTART"); }
 
     private synchronized void send(String message) {
         if (closed.get() || output == null) throw new MultiplayerException("The LAN connection is not active.");

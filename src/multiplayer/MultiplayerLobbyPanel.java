@@ -23,7 +23,7 @@ public final class MultiplayerLobbyPanel extends JPanel {
     private final String address;
     private final int port;
     private final MultiplayerProfile profile;
-    private MultiplayerGamePanel gamePanel;
+    private volatile MultiplayerGamePanel gamePanel;
 
     public MultiplayerLobbyPanel(LanServer server,String address,int port,MultiplayerProfile profile,boolean host) {
         this.server=server; this.address=address; this.port=port; this.profile=profile; this.host=host;
@@ -51,10 +51,18 @@ public final class MultiplayerLobbyPanel extends JPanel {
                 if(isHost) SwingUtilities.invokeLater(() -> voteButton.doClick());
             }
             @Override public void onLobby(String state) { SwingUtilities.invokeLater(() -> updateLobby(state)); }
+            @Override public void onCountdown(int value, int backgroundRgb, int gridRgb, int foodRgb) {
+                SwingUtilities.invokeLater(() -> {
+                    if (gamePanel == null) {
+                        gamePanel = new MultiplayerGamePanel(server, client, host);
+                        Main.mostrarPartidaMultiplayer(gamePanel);
+                    }
+                    gamePanel.showCountdown(value, backgroundRgb, gridRgb, foodRgb);
+                });
+            }
             @Override public void onStarted(String ruleset) {
                 SwingUtilities.invokeLater(() -> {
-                    gamePanel = new MultiplayerGamePanel(server, client, host);
-                    Main.mostrarPartidaMultiplayer(gamePanel);
+                    if (gamePanel != null) gamePanel.markStarted();
                 });
             }
             @Override public void onSnapshot(String snapshot) {

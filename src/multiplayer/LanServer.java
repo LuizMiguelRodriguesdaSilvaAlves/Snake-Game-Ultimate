@@ -1,6 +1,8 @@
 package multiplayer;
 
 import java.awt.Point;
+import java.awt.Color;
+import java.awt.Font;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -16,6 +18,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 import sistemaDeMovimentacaoGeral.Direction;
+import configuracoesGerais.TemaVisual;
 import exceptions.MultiplayerConnectionException;
 import exceptions.MultiplayerLobbyException;
 import exceptions.MultiplayerProtocolException;
@@ -42,7 +45,13 @@ public final class LanServer implements AutoCloseable {
         boolean alive = true;
         PlayerState(int id, MultiplayerProfile profile, Peer peer, Point head) {
             this.id=id; this.profile=profile; this.peer=peer;
+            reset(head);
+        }
+        void reset(Point head) {
+            body.clear();
             for (int i=0;i<4;i++) body.add(new Point(head.x-i,head.y));
+            direction=Direction.RIGHT;
+            score=0; combo=0; comboTicks=0; alive=true;
         }
     }
     private final class Peer implements Runnable {
@@ -76,14 +85,32 @@ public final class LanServer implements AutoCloseable {
     private volatile ServerSocket serverSocket;
     private volatile boolean running;
     private volatile MultiplayerRuleset selectedRuleset = MultiplayerRuleset.CLASSIC;
+    private final int hostBackgroundRgb;
+    private final int hostGridRgb;
+    private final int hostFoodRgb;
+    private volatile boolean starting;
+    private volatile boolean finished;
+    private volatile Thread countdownThread;
     private Point food = new Point(15,10);
     private int tick;
     private Thread acceptThread;
     private Thread gameThread;
 
     public LanServer(int port) {
+        this(port, new TemaVisual(Color.BLACK, new Color(55,55,55), Color.RED,
+                Color.GREEN, Color.WHITE, new Font(Font.SANS_SERIF, Font.BOLD, 16)));
+    }
+    /** Creates the server with the host computer's selected board theme. */
+    public LanServer(int port, TemaVisual hostTheme) {
         if (port < 1024 || port > 65535) throw new MultiplayerLobbyException("LAN port must be between 1024 and 65535.");
+        if (hostTheme == null || hostTheme.getFundo() == null || hostTheme.getGrade() == null
+                || hostTheme.getComida() == null) {
+            throw new MultiplayerLobbyException("A valid host map theme is required.");
+        }
         this.port=port;
+        hostBackgroundRgb=hostTheme.getFundo().getRGB();
+        hostGridRgb=hostTheme.getGrade().getRGB();
+        hostFoodRgb=hostTheme.getComida().getRGB();
     }
     public int getPort() { return port; }
     /** Opens the TCP listener and starts accepting up to three remote players. */
@@ -101,7 +128,9 @@ public final class LanServer implements AutoCloseable {
                 socket.setTcpNoDelay(true);
                 Peer peer=new Peer(socket);
                 synchronized(this) {
-                    if(running) { peer.send("ERROR|MATCH_ALREADY_STARTED"); peer.close(); continue; }
+                    if(starting || running || finished) {
+                        peer.send("ERROR|MATCH_ALREADY_STARTED"); peer.close(); continue;
+                    }
                     if(peers.size()>=MAX_PLAYERS) { peer.send("ERROR|ROOM_FULL"); peer.close(); continue; }
                     peers.add(peer);
                 }
@@ -135,20 +164,25 @@ public final class LanServer implements AutoCloseable {
             if(peer.player==null) { peer.send("ERROR|HANDSHAKE_REQUIRED"); return; }
             if(fields.length==2 && "VOTE".equals(fields[0])) {
                 synchronized(this) {
-                    if(running) return;
+                    if(starting || running || finished) return;
                     votes.put(peer.player.id,MultiplayerRuleset.fromWire(fields[1]));
                     broadcastLobby();
                 }
             } else if(fields.length==2 && "DIR".equals(fields[0])) {
                 synchronized(this) {
-                    if(!peer.player.alive) return;
+                    if(!running || !peer.player.alive) return;
                     Direction requested=Direction.valueOf(fields[1]);
                     if(!requested.isOpposite(peer.player.direction)) peer.player.direction=requested;
                 }
             } else if(fields.length==1 && "START".equals(fields[0])) {
                 synchronized(this) {
-                    if(peer.player.id!=1 || running) return;
+                    if(peer.player.id!=1 || starting || running || finished) return;
                     startMatch();
+                }
+            } else if(fields.length==1 && "RESTART".equals(fields[0])) {
+                synchronized(this) {
+                    if(peer.player.id!=1 || starting || running || !finished) return;
+                    restartMatch();
                 }
             }
         } catch(RuntimeException exception) {
@@ -156,18 +190,68 @@ public final class LanServer implements AutoCloseable {
             peer.send("ERROR|" + reason.replace("|", " ").replace("\\n", " "));
         }
     }
-    /** Starts the match after majority voting; the host's vote breaks a tie. */
+    /** Validates lobby votes and begins a synchronized three-second countdown. */
     public synchronized void startMatch() {
-        if(running) throw new MultiplayerLobbyException("The LAN match has already started.");
+        if(starting || running || finished) throw new MultiplayerLobbyException("The LAN match cannot be started in its current state.");
         if(players.size()<2) throw new MultiplayerLobbyException("At least two players must join before starting.");
         if(!votes.containsKey(1)) throw new MultiplayerLobbyException("The host must cast a vote before starting.");
         if(votes.size()!=players.size()) throw new MultiplayerLobbyException("Every connected player must vote before the host can start the match.");
         selectedRuleset=resolveVote();
-        running=true; tick=0; food=spawnFood();
-        gameThread=new Thread(this::gameLoop,"snake-lan-game");
-        gameThread.setDaemon(true); gameThread.start();
-        broadcast("STARTED|"+selectedRuleset.name());
-        broadcast(snapshotLine());
+        beginCountdown();
+    }
+
+    /** Resets the round; this command is accepted only from the host connection. */
+    public synchronized void restartMatch() {
+        if(starting || running || !finished) throw new MultiplayerLobbyException("The match is not ready to restart.");
+        if(players.size()<2 || !players.containsKey(1)) throw new MultiplayerLobbyException("At least two players, including the host, are required to restart.");
+        Point[] starts={new Point(5,5),new Point(24,14),new Point(5,14),new Point(24,5)};
+        for(PlayerState player:players.values()) player.reset(starts[player.id-1]);
+        tick=0;
+        beginCountdown();
+    }
+
+    /** Sends the same countdown and host theme to all connected players. */
+    private void beginCountdown() {
+        starting=true;
+        Thread countdown=new Thread(() -> {
+            try {
+                for(int value=3;value>=1;value--) {
+                    synchronized(LanServer.this) {
+                        if(closed.get() || !starting) return;
+                        broadcast("COUNTDOWN|"+value+"|"+hostBackgroundRgb+"|"+hostGridRgb+"|"+hostFoodRgb);
+                    }
+                    Thread.sleep(1000);
+                }
+                synchronized(LanServer.this) {
+                    if(closed.get() || !starting) return;
+                    if(players.size()<2 || !players.containsKey(1)) {
+                        starting=false;
+                        broadcast("ERROR|NOT_ENOUGH_PLAYERS");
+                        return;
+                    }
+                    starting=false;
+                    running=true;
+                    finished=false;
+                    tick=0;
+                    food=spawnFood();
+                    gameThread=new Thread(this::gameLoop,"snake-lan-game");
+                    gameThread.setDaemon(true);
+                    gameThread.start();
+                    broadcast("STARTED|"+selectedRuleset.name());
+                    broadcast(snapshotLine());
+                }
+            } catch(InterruptedException exception) {
+                Thread.currentThread().interrupt();
+            } catch(RuntimeException exception) {
+                synchronized(LanServer.this) {
+                    starting=false;
+                    broadcast("ERROR|ROUND_INITIALIZATION_FAILED");
+                }
+            }
+        },"snake-lan-countdown");
+        countdown.setDaemon(true);
+        countdownThread=countdown;
+        countdown.start();
     }
     private MultiplayerRuleset resolveVote() {
         Map<MultiplayerRuleset,Integer> counts=new LinkedHashMap<>();
@@ -187,9 +271,12 @@ public final class LanServer implements AutoCloseable {
                 tick++;
                 for(PlayerState player:players.values()) if(player.alive) updatePlayer(player);
                 long alivePlayers=players.values().stream().filter(player->player.alive).count();
-                if(tick>=10 && alivePlayers<=1) running=false;
+                if(tick>=10 && alivePlayers<=1) {
+                    running=false;
+                    finished=true;
+                }
                 broadcast(snapshotLine());
-                if(!running) broadcast("OVER");
+                if(finished) broadcast("OVER");
             }
         }
     }
@@ -270,7 +357,12 @@ public final class LanServer implements AutoCloseable {
     }
     @Override public synchronized void close() {
         if(!closed.compareAndSet(false,true)) return;
+        starting=false;
         running=false;
+        Thread countdown=countdownThread;
+        if(countdown!=null) countdown.interrupt();
+        Thread game=gameThread;
+        if(game!=null) game.interrupt();
         if(serverSocket!=null) try { serverSocket.close(); } catch(IOException ignored) { }
         for(Peer peer:new ArrayList<>(peers)) peer.close();
         peers.clear(); players.clear(); votes.clear();

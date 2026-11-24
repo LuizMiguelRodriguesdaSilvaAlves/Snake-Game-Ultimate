@@ -6,6 +6,7 @@ import javax.swing.*;
 import java.awt.*;
 import exceptions.MenuNavigationException;
 import personalizacaoCobra.SnakeSkinManager;
+import customizacao.UserSettings;
 
 /** Entry screen for hosting or joining a four-player local-area-network match. */
 public final class MultiplayerMenuPanel extends JPanel {
@@ -37,7 +38,7 @@ public final class MultiplayerMenuPanel extends JPanel {
             int port=Integer.parseInt(portField.getText().trim());
             MultiplayerProfile profile=MultiplayerProfile.fromLocalSkin(nameField.getText(),SnakeSkinManager.getSkin());
             String address=addressField.getText().trim();
-            if(host) { server=new LanServer(port); server.start(); address="127.0.0.1"; }
+            if(host) { server=new LanServer(port, UserSettings.getTema()); server.start(); address="127.0.0.1"; }
             Main.mostrarLobby(server,address,port,profile,host);
         } catch(NumberFormatException exception) {
             JOptionPane.showMessageDialog(this,"Port must be a number between 1024 and 65535.","Invalid port",JOptionPane.ERROR_MESSAGE);

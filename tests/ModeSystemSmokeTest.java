@@ -46,6 +46,11 @@ import exceptions.MultiplayerException;
 import exceptions.MultiplayerLobbyException;
 import multiplayer.MultiplayerProfile;
 import multiplayer.MultiplayerRuleset;
+import configuracoesGerais.TemaVisual;
+import java.awt.Color;
+import java.awt.Font;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicBoolean;
 import pontuacao.ScoreManager;
 import sistemaDeMovimentacaoGeral.Direction;
 import sistemaDeMovimentacaoGeral.Snake;
@@ -545,17 +550,30 @@ public final class ModeSystemSmokeTest {
     }
 
     /** Runs a loopback LAN match to verify handshakes, majority voting and host tie-break. */
+    /** Verifies synchronized countdowns, host map ownership and host-only round restart. */
     private static void verifyLanMajorityVoteAndSnapshots() throws Exception {
         int port;
         try (ServerSocket probe = new ServerSocket(0)) { port = probe.getLocalPort(); }
-        LanServer server = new LanServer(port);
+        TemaVisual hostTheme = new TemaVisual(new Color(12, 34, 56), new Color(70, 80, 90),
+                new Color(210, 40, 170), Color.GREEN, Color.WHITE,
+                new Font(Font.SANS_SERIF, Font.BOLD, 16));
+        LanServer server = new LanServer(port, hostTheme);
         CountDownLatch hostWelcome = new CountDownLatch(1);
         CountDownLatch clientWelcome = new CountDownLatch(1);
         CountDownLatch votesReady = new CountDownLatch(1);
         CountDownLatch hostStarted = new CountDownLatch(1);
         CountDownLatch clientStarted = new CountDownLatch(1);
         CountDownLatch snapshotReceived = new CountDownLatch(1);
+        CountDownLatch hostOver = new CountDownLatch(1);
+        CountDownLatch clientOver = new CountDownLatch(1);
+        CountDownLatch hostRestartStarted = new CountDownLatch(1);
+        CountDownLatch clientRestartStarted = new CountDownLatch(1);
+        CountDownLatch restartedSnapshot = new CountDownLatch(1);
         AtomicReference<String> selectedMode = new AtomicReference<>();
+        AtomicReference<String> restartedState = new AtomicReference<>();
+        AtomicInteger hostCountdownTicks = new AtomicInteger();
+        AtomicInteger guestCountdownTicks = new AtomicInteger();
+        AtomicBoolean waitingForRestartSnapshot = new AtomicBoolean();
         LanClient host = null;
         LanClient guest = null;
         try {
@@ -568,18 +586,48 @@ public final class ModeSystemSmokeTest {
                 @Override public void onLobby(String lobby) {
                     if (lobby.contains("1:CLASSIC") && lobby.contains("2:COMBO")) votesReady.countDown();
                 }
-                @Override public void onStarted(String mode) {
-                    selectedMode.set(mode);
-                    hostStarted.countDown();
+                @Override public void onCountdown(int value, int bg, int grid, int food) {
+                    hostCountdownTicks.incrementAndGet();
+                    check(bg == hostTheme.getFundo().getRGB()
+                                    && grid == hostTheme.getGrade().getRGB()
+                                    && food == hostTheme.getComida().getRGB(),
+                            "The host's saved board and fruit colors must be sent to every player.");
                 }
-                @Override public void onSnapshot(String snapshot) { snapshotReceived.countDown(); }
+                @Override public void onStarted(String mode) {
+                    if (hostStarted.getCount() > 0) {
+                        selectedMode.set(mode);
+                        hostStarted.countDown();
+                    } else {
+                        waitingForRestartSnapshot.set(true);
+                        hostRestartStarted.countDown();
+                    }
+                }
+                @Override public void onSnapshot(String snapshot) {
+                    snapshotReceived.countDown();
+                    if (waitingForRestartSnapshot.get() && snapshot.contains("|0|1~")) {
+                        restartedState.set(snapshot);
+                        restartedSnapshot.countDown();
+                    }
+                }
+                @Override public void onGameOver() { hostOver.countDown(); }
             });
             guest = new LanClient(new LanClient.Listener() {
                 @Override public void onWelcome(int id, boolean isHost) {
                     check(id == 2 && !isHost, "The second LAN connection must be a guest.");
                     clientWelcome.countDown();
                 }
-                @Override public void onStarted(String mode) { clientStarted.countDown(); }
+                @Override public void onCountdown(int value, int bg, int grid, int food) {
+                    guestCountdownTicks.incrementAndGet();
+                    check(bg == hostTheme.getFundo().getRGB()
+                                    && grid == hostTheme.getGrade().getRGB()
+                                    && food == hostTheme.getComida().getRGB(),
+                            "A guest's local theme must never override the host's board theme.");
+                }
+                @Override public void onStarted(String mode) {
+                    if (clientStarted.getCount() > 0) clientStarted.countDown();
+                    else clientRestartStarted.countDown();
+                }
+                @Override public void onGameOver() { clientOver.countDown(); }
             });
             MultiplayerProfile hostProfile = new MultiplayerProfile("Host", 0xFF00FF00, 0xFF008800, 0xFF000000);
             MultiplayerProfile guestProfile = new MultiplayerProfile("Guest", 0xFFFF8800, 0xFFCC5500, 0xFF000000);
@@ -591,10 +639,29 @@ public final class ModeSystemSmokeTest {
             guest.vote(MultiplayerRuleset.COMBO);
             check(votesReady.await(5, TimeUnit.SECONDS), "LAN votes were not registered by the host.");
             host.startMatch();
-            check(hostStarted.await(5, TimeUnit.SECONDS), "The host did not receive the match-start packet.");
-            check(clientStarted.await(5, TimeUnit.SECONDS), "The guest did not receive the match-start packet.");
+            check(hostStarted.await(6, TimeUnit.SECONDS), "The host did not receive the post-countdown start packet.");
+            check(clientStarted.await(6, TimeUnit.SECONDS), "The guest did not receive the post-countdown start packet.");
             check(snapshotReceived.await(5, TimeUnit.SECONDS), "The server did not broadcast a match snapshot.");
             check("CLASSIC".equals(selectedMode.get()), "A tied vote must be resolved using the host's vote.");
+            check(hostCountdownTicks.get() == 3 && guestCountdownTicks.get() == 3,
+                    "Every client must receive the complete 3-2-1 countdown.");
+
+            check(hostOver.await(9, TimeUnit.SECONDS), "The match did not enter the game-over state.");
+            check(clientOver.await(5, TimeUnit.SECONDS), "The guest did not receive the game-over state.");
+            int guestTicksBeforeUnauthorizedRequest = guestCountdownTicks.get();
+            guest.restartMatch();
+            Thread.sleep(250);
+            check(guestCountdownTicks.get() == guestTicksBeforeUnauthorizedRequest,
+                    "A non-host player must not be able to restart the match.");
+
+            host.restartMatch();
+            check(hostRestartStarted.await(6, TimeUnit.SECONDS), "The host could not restart the round.");
+            check(clientRestartStarted.await(6, TimeUnit.SECONDS), "The restarted round was not broadcast to guests.");
+            check(restartedSnapshot.await(5, TimeUnit.SECONDS), "The restarted round did not broadcast a fresh snapshot.");
+            check(restartedState.get() != null && restartedState.get().contains("~0~1~"),
+                    "Restart must clear scores and restore every player's alive state.");
+            check(hostCountdownTicks.get() == 6 && guestCountdownTicks.get() == 6,
+                    "The restarted round must receive a fresh synchronized 3-2-1 countdown.");
         } finally {
             if (host != null) host.close();
             if (guest != null) guest.close();
